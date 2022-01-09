@@ -60,15 +60,15 @@ class CalculateTree(Transformer):
         return a - b
 
     def mul(self, a, b):
-        print("    call Int:mul")
+        print("    call Int:times")
         return a * b
 
     def div(self, a, b):
-        print("    call Int:div")
-        return a / b
+        print("    call Int:divide")
+        return int(a / b) # Keep it an integer
 
     def neg(self, a):
-        print("    call Int:neg")
+        print("    call Int:negate")
         return -a
 
     def assign_var(self, name, value):
@@ -96,9 +96,6 @@ if __name__ == '__main__':
     print(".class Sample:Obj")
     print()
     print(".method $constructor")
-    result = calc(s)
-    print()
-    print("    const", result, " # expected result")
-    print("    call Int:equals")
-    print("    call Bool:print")
-    print("    halt")
+    result = calc(s) # result = expected result
+    print("    call Int:print # expected value is", result)
+    print("    return 0")
