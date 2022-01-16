@@ -1,0 +1,23 @@
+factorial = 1;
+iterator = 0;
+
+iterator = iterator + 1;
+factorial = factorial * 1;
+factorial.print();
+
+iterator = iterator + 1;
+factorial = factorial * 1;
+factorial.print();
+
+iterator = iterator + 1;
+factorial = factorial * 1;
+factorial.print();
+
+iterator = iterator + 1;
+factorial = factorial * 1;
+factorial.print();
+
+iterator = iterator + 1;
+factorial = factorial * 1;
+factorial.print();
+
