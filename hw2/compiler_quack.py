@@ -9,7 +9,7 @@ Notes:
  - we are adding basic statements and expressions to our language/compiler
 """
 
-from lark import Lark, v_args
+from lark import Lark, v_args, Tree, Token
 from lark.visitors import Visitor_Recursive
 import sys
 import logging
@@ -28,7 +28,7 @@ quack_grammar = "\n".join([
     
     # Definition of a statement: an expression or variable assignment
     "?statement: r_expr \";\"                           -> statement",
-    "   | l_expr \"=\" r_expr \";\"                     -> assignment",
+    "   | l_expr (\":\" CNAME)? \"=\" r_expr \";\"      -> assignment",
 
     # Definition of a left-hand expression: identifier, or object.identifier
     "?l_expr: identifier                                -> identifier_lhand",
@@ -75,6 +75,34 @@ class QuackParser(Visitor_Recursive):
         self.identifiers = {} # Store local variable identifiers and data type
         self.asm = [] # Stores each assembly instruction
 
+    def infer_name_type(self, tree, ident, scope=None):
+        # Attempt to infer the identifier type, and get the name of it
+
+        if isinstance(ident, Tree):
+            # For identifiers, just recurse
+            if ident.data == "identifier":
+                return self.infer_name_type(tree, ident.children[1].value) # Token in index 1 spot
+            elif ident.data.startswith("identifier"): # includes _lhand, _rhand, _method
+                return self.infer_name_type(tree, ident.children[0])
+            elif ident.data == "int_literal":
+                return ident.children[0].value, "Int"
+            elif ident.data == "string_literal":
+                return ident.children[0].value, "String"
+            else:
+                logger.fatal(f"Attempted to infer name and type of unknown tree type {ident.data} in {tree}")
+
+        elif isinstance(ident, Token):
+            return self.infer_name_type(tree, ident.token)
+
+        if ident in self.identifiers:
+            return ident, self.identifiers[ident]
+
+        try:
+            a = int(ident)
+            return ident, "Int"
+        except ValueError:
+            return ident, "String"
+      
     def write_asm(self, output_name):
         # Generates the full assembly program
         logger.trace("Writing assembly for program")
@@ -114,9 +142,17 @@ class QuackParser(Visitor_Recursive):
     def assignment(self, tree):
         logger.debug(f"Processed assignment: {tree}")
         if tree.children[0].children[0].data == "identifier":
-            # Get name of identifier
-            ident = tree.children[0].children[0].children[1].value
-        self.identifiers[ident] = "Int" # Add identifier
+
+            ident, _ = self.infer_name_type(tree, tree.children[0])
+
+            if len(tree.children) == 3:
+                # Need to store identifier type
+                self.identifiers[ident] = tree.children[1].value # Add identifier
+            else:
+                if ident not in self.identifiers:
+                    logger.fatal(f"Identifier {ident} used before type declaration. Quit")
+                    sys.exit(1)
+
         self.add_asm("store " + ident)
 
     def string_literal(self, tree):
@@ -129,7 +165,8 @@ class QuackParser(Visitor_Recursive):
 
     def method_add(self, tree):
         logger.debug(f"Processed method add: {tree}")
-        self.add_asm("call Int:plus")
+        _, clazz = self.infer_name_type(tree, tree.children[1])
+        self.add_asm(f"call {clazz}:plus")
 
     def method_sub(self, tree):
         logger.debug(f"Processed method sub: {tree}")
@@ -149,11 +186,9 @@ class QuackParser(Visitor_Recursive):
 
     def method_invocation(self, tree):
         logger.debug(f"Processed method invocation: {tree}")
-        if tree.children[1].children[0].data == "identifier":
-            # Get name of identifier
-            ident = tree.children[1].children[0].children[1].value
-        self.add_asm("call Int:" + ident)
-
+        _, clazz = self.infer_name_type(tree, tree.children[0]) # Get object class
+        ident, _ = self.infer_name_type(tree, tree.children[1]) # Get method name
+        self.add_asm(f"call {clazz}:{ident}")
 
     def method_args(self, tree):
         logger.trace(f"Processed method args: {tree}")
@@ -163,8 +198,14 @@ class QuackParser(Visitor_Recursive):
         if tree.data == "assignment":
             # Want to visit rhand before lhand
             logger.trace("Processing assignment, using custom traversal")
-            self.visit(tree.children[1])
-            self.visit(tree.children[0])
+            if len(tree.children) == 3:
+                # ident: Class = value; 
+                #  0 : 1 = 2. Skip 1
+                self.visit(tree.children[2])
+                self.visit(tree.children[0])
+            else:
+                self.visit(tree.children[1])
+                self.visit(tree.children[0])
         elif tree.data == "method_sub" or tree.data == "method_div":
             # Want to visit second operand before first operand
             logger.trace("Processing method_sub/div, using custom traversal")

@@ -1,23 +1,52 @@
-factorial = 1;
-iterator = 0;
+factorial : Int = 1;
+iterator : Int = 0;
+str_i :String = "Iteration ";
 
 iterator = iterator + 1;
 factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
 factorial.print();
+"\n".print();
 
 iterator = iterator + 1;
 factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
 factorial.print();
+"\n".print();
 
 iterator = iterator + 1;
 factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
 factorial.print();
+"\n".print();
 
 iterator = iterator + 1;
 factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
 factorial.print();
+"\n".print();
 
 iterator = iterator + 1;
 factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
 factorial.print();
+"\n".print();
+
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
 
