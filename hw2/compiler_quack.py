@@ -19,6 +19,10 @@ import log_helper
 log_helper.setup_logging("TRACE")
 logger = logging.getLogger("quack-compiler")
 
+def compile_error(msg):
+    logger.fatal(f"COMPILE ERROR: {msg}")
+    sys.exit(1)
+
 # The quack grammar for lexical analysis
 quack_grammar = "\n".join([
     "?start: program",
@@ -38,20 +42,25 @@ quack_grammar = "\n".join([
     "?identifier: [\"_\" | LETTER] CNAME*               -> identifier",
 
     # Definition of a right-hand expression: an identifier, constant, binary operator, or method invocation
-    "?r_expr: \"(\" r_expr \")\"                        -> identifier_rhand",
-    "   | l_expr                                        -> identifier_rhand",
+
+    "?r_expr: r_expr_prod",
+    "   | r_expr \"+\" r_expr_prod                      -> method_add",
+    "   | r_expr \"-\" r_expr_prod                      -> method_sub",
+    "   | r_expr \".\" method_name \"(\" method_args? \")\"     -> method_invocation",
+
+    "?r_expr_prod: r_expr_atom",
+    "   | r_expr_prod \"*\" r_expr_atom                 -> method_mul",
+    "   | r_expr_prod \"/\" r_expr_atom                 -> method_div",
+
+    "?r_expr_atom: l_expr                               -> identifier_rhand",
     "   | ESCAPED_STRING                                -> string_literal",
     "   | INT                                           -> int_literal",
-    "   | r_expr \"+\" r_expr                           -> method_add"
-    "   | r_expr \"-\" r_expr                           -> method_sub"
-    "   | r_expr \"*\" r_expr                           -> method_mul"
-    "   | r_expr \"/\" r_expr                           -> method_div"
-    "   | \"-\" r_expr                                  -> method_neg"
+    "   | \"-\" r_expr_atom                             -> method_neg",
+    "   | \"(\" r_expr \")\"                            -> identifier_rhand",
 
-    "   | r_expr \".\" method_name \"(\" method_args? \")\"     -> method_invocation",
     
-    "?method_name: identifier                                   -> identifier_method",
-    "?method_args: r_expr (\",\" r_expr)*                       -> method_args",
+    "?method_name: identifier                           -> identifier_method",
+    "?method_args: r_expr (\",\" r_expr)*               -> method_args",
 
     # Useful defaults
     "%import common.INT",
@@ -84,12 +93,14 @@ class QuackParser(Visitor_Recursive):
                 return self.infer_name_type(tree, ident.children[1].value) # Token in index 1 spot
             elif ident.data.startswith("identifier"): # includes _lhand, _rhand, _method
                 return self.infer_name_type(tree, ident.children[0])
+            elif ident.data.startswith("method_"): # some sort of method invocation
+                return self.infer_name_type(tree, ident.children[0])
             elif ident.data == "int_literal":
                 return ident.children[0].value, "Int"
             elif ident.data == "string_literal":
                 return ident.children[0].value, "String"
             else:
-                logger.fatal(f"Attempted to infer name and type of unknown tree type {ident.data} in {tree}")
+                compile_error(f"Attempted to infer name and type of unknown tree type {ident.data} in {tree}")
 
         elif isinstance(ident, Token):
             return self.infer_name_type(tree, ident.token)
@@ -128,10 +139,9 @@ class QuackParser(Visitor_Recursive):
 
     def identifier_rhand(self, tree):
         logger.debug(f"Processed identifier_rhand: {tree}")
-        if tree.children[0].children[0].data == "identifier":
-            # Get name of identifier
-            ident = tree.children[0].children[0].children[1].value
-        self.add_asm("load " + ident)
+        ident, _ = self.infer_name_type(tree, tree.children[0])
+        if tree.children[0].data == "identifier_lhand":
+            self.add_asm("load " + ident)
 
     def identifier_lhand(self, tree):
         logger.trace(f"Processed identifier_lhand: {tree}")
@@ -150,8 +160,7 @@ class QuackParser(Visitor_Recursive):
                 self.identifiers[ident] = tree.children[1].value # Add identifier
             else:
                 if ident not in self.identifiers:
-                    logger.fatal(f"Identifier {ident} used before type declaration. Quit")
-                    sys.exit(1)
+                    compile_error(f"Identifier {ident} used before type declaration. Quit")
 
         self.add_asm("store " + ident)
 
