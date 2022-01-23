@@ -1,3 +1,6 @@
+**__pycache__
+**.pyc
+
 # MacOS cruft
 .DS_Store
 
