@@ -1,3 +1,16 @@
+# HW 2
+
+I integrated the assembler into my compiler to streamline compilation. Main class name and output files are by default inferred from the input source file name, can be overriden. Run the compiler with `-h` for more info.
+
+Do the following to get it to work:
+
+1. `cd hw2` to go to the hw2 folder
+2. Run `python3 compiler.py <source file>`, you can use `src/Factorial.quack` as an example
+3. `cd ../` to go to root folder
+4. `cp <obj file> OBJ/` to make object code visible to the vm. For Factorial.quack it is in `hw2/out/Factorial.json`
+5. Now run `./tiny_vm <main class>` for Factorial.quack it is `Factorial`
+
+
 # HW 1
 
 Do the following to get it to work:

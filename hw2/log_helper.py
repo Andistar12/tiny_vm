@@ -68,7 +68,7 @@ def setup_logging(level):
         level = logging.INFO
 
     # Setup logging
-    logFormat = logging.Formatter('[%(levelname)s] %(message)s')
+    logFormat = logging.Formatter('[%(name)s %(levelname)s] %(message)s')
     rootLogger = logging.getLogger()
     rootLogger.setLevel(level)
 

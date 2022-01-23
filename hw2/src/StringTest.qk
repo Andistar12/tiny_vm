@@ -1,0 +1,10 @@
+// A simple string
+t : String = "hello world";
+t.print();
+
+// A more complicated string
+s : String = """ \\should see two backslashes
+this is a literal string
+""";
+s.print();
+

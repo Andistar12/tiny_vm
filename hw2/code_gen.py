@@ -1,13 +1,8 @@
 """
-Author:       Andy Nguyen
-Class:        CIS 461
-Term:         Winter 2022
-Assignment:   Assignment 2
-File:         compiler.py
-Date:         15 January 2022
-Notes:
- - we are adding basic statements and expressions to our language/compiler
+Generates assembly code targeted at the tiny vm. Parsing is in parser.py
 """
+
+from pathlib import Path
 
 from lark import Lark, v_args, Tree, Token
 from lark.visitors import Visitor_Recursive
@@ -15,77 +10,25 @@ import sys
 import logging
 import log_helper
 
-# Setup project logging
-log_helper.setup_logging("TRACE")
-logger = logging.getLogger("quack-compiler")
+
+logger = logging.getLogger("asm-code-gen")
+
 
 def compile_error(msg):
+    # Caught some compile-time error
     logger.fatal(f"COMPILE ERROR: {msg}")
     sys.exit(1)
 
-# The quack grammar for lexical analysis
-quack_grammar = "\n".join([
-    "?start: program",
 
-    # Definition of a program: a statement followed by a program (more statements)
-    "?program: statement*                               -> program",
-    
-    # Definition of a statement: an expression or variable assignment
-    "?statement: r_expr \";\"                           -> statement",
-    "   | l_expr (\":\" CNAME)? \"=\" r_expr \";\"      -> assignment",
-
-    # Definition of a left-hand expression: identifier, or object.identifier
-    "?l_expr: identifier                                -> identifier_lhand",
-    # TODO add object field for l_expr
-
-    # Definition of an identifier: non digit character followed by alphanumeric
-    "?identifier: [\"_\" | LETTER] CNAME*               -> identifier",
-
-    # Definition of a right-hand expression: an identifier, constant, binary operator, or method invocation
-
-    "?r_expr: r_expr_prod",
-    "   | r_expr \"+\" r_expr_prod                      -> method_add",
-    "   | r_expr \"-\" r_expr_prod                      -> method_sub",
-    "   | r_expr \".\" method_name \"(\" method_args? \")\"     -> method_invocation",
-
-    "?r_expr_prod: r_expr_atom",
-    "   | r_expr_prod \"*\" r_expr_atom                 -> method_mul",
-    "   | r_expr_prod \"/\" r_expr_atom                 -> method_div",
-
-    "?r_expr_atom: l_expr                               -> identifier_rhand",
-    "   | ESCAPED_STRING                                -> string_literal",
-    "   | INT                                           -> int_literal",
-    "   | \"-\" r_expr_atom                             -> method_neg",
-    "   | \"(\" r_expr \")\"                            -> identifier_rhand",
-
-    
-    "?method_name: identifier                           -> identifier_method",
-    "?method_args: r_expr (\",\" r_expr)*               -> method_args",
-
-    # Useful defaults
-    "%import common.INT",
-    "%import common.ESCAPED_STRING",
-    "%import common.WORD",
-    "%import common.LETTER",
-    "%import common.CNAME",
-
-    # Ignore whitespace
-    "%import common.WS_INLINE",
-    "%import common.WS",
-    "%ignore WS",
-    "%ignore WS_INLINE"
-])
-
-
-# Parses the tree into assembly - syntatic analysis 
-class QuackParser(Visitor_Recursive):
+# Walks the tree (twice) and generates the end asm
+class QuackASMGen(Visitor_Recursive):
 
     def __init__(self):
         self.identifiers = {} # Store local variable identifiers and data type
         self.asm = [] # Stores each assembly instruction
 
     def infer_name_type(self, tree, ident, scope=None):
-        # Attempt to infer the identifier type, and get the name of it
+        # Attempt to infer the identifier type/class, and get the name of it
 
         if isinstance(ident, Tree):
             # For identifiers, just recurse
@@ -99,6 +42,13 @@ class QuackParser(Visitor_Recursive):
                 return ident.children[0].value, "Int"
             elif ident.data == "string_literal":
                 return ident.children[0].value, "String"
+            elif ident.data == "boolean_literal_true":
+                return "true", "Boolean"
+            elif ident.data == "boolean_literal_false":
+                return "false", "Boolean"
+            elif ident.data == "nothing_literal":
+                return "none", "Nothing"
+
             else:
                 compile_error(f"Attempted to infer name and type of unknown tree type {ident.data} in {tree}")
 
@@ -112,19 +62,26 @@ class QuackParser(Visitor_Recursive):
             a = int(ident)
             return ident, "Int"
         except ValueError:
+            if ident == "true" or ident == "false":
+                return ident, "Boolean"
+            if ident == "none":
+                return ident, "Nothing"
             return ident, "String"
       
-    def write_asm(self, output_name):
-        # Generates the full assembly program
+    def get_asm(self, main_class="Main"):
+        # Generates the fully-formatted assembly program, line by line
         logger.trace("Writing assembly for program")
         self.add_asm("return 0")
-        with open(output_name, "w") as f:
-            f.write(".class Sample:Obj\n\n.method $constructor\n")
-            f.write(".local " + ",".join(self.identifiers.keys()))
-            for line in self.asm:
-                f.write("\n\t")
-                f.write(line)
-            f.write("\n")
+
+        asm = [f".class {main_class}:Obj", "", ".method $constructor"]
+        if len(self.identifiers.keys()) > 0:
+            asm.append(".local " + ",".join(self.identifiers.keys()))
+        for line in self.asm:
+            asm.append("\t" + line)
+
+        logger.trace("Generated assembly for program")
+        logger.trace(asm)
+        return asm
 
     def add_asm(self, line):
         # Adds a line of assembly to the output
@@ -166,11 +123,34 @@ class QuackParser(Visitor_Recursive):
 
     def string_literal(self, tree):
         logger.debug(f"Processed string literal: {tree}")
-        self.add_asm("const " + str(tree.children[0].value))
+        
+        # Remove surrounding quotes
+        s = tree.children[0].value
+        if s.startswith("\"\"\"") or s.startswith("'''"):
+            s = s[3:-3]
+        if s.startswith("\""):
+            s = s[1:-1]
+
+        # Unescaping this string was difficult, I tried re.escape(s), 
+        # s.encode(unicode_escape), ast.literal_eval(s), r({}).format(s)
+        # TODO there has to be a cleaner way to encode string literals
+        self.add_asm("const \"" + repr(s)[1:-1] + "\"")
 
     def int_literal(self, tree):
         logger.debug(f"Processed int literal: {tree}")
         self.add_asm("const " + str(tree.children[0].value))
+
+    def boolean_literal_true(self, tree):
+        logger.debug(f"Processed boolean literal: {tree}")
+        self.add_asm("const true")
+
+    def boolean_literal_false(self, tree):
+        logger.debug(f"Processed boolean literal: {tree}")
+        self.add_asm("const false")
+    
+    def nothing_literal(self, tree):
+        logger.debug(f"Processed nothing literal: {tree}")
+        self.add_asm("const none")
 
     def method_add(self, tree):
         logger.debug(f"Processed method add: {tree}")
@@ -228,42 +208,13 @@ class QuackParser(Visitor_Recursive):
         self._call_userfunc(tree)
         return tree
 
-if __name__ == '__main__':
 
-    # Argument check
-    if len(sys.argv) <= 1:
-        print(f"Usage: {sys.argv[0]} <file>")
-        exit(1)
-
-    # Read entire program into memory
-    logger.debug("Reading in program text")
-    prgm_text = ""
-    prgm_file = sys.argv[1]
-    with open(prgm_file, "r") as f:
-        prgm_text = f.read()
-    logger.info("Program text successfully read in")
-
-    # Lex the program
-    logger.debug("Attempting to parse the grammer")
-    quack_lexer = Lark(quack_grammar, parser="lalr")
-    logger.debug("Atetmpting to lex the program text")
-    tree = quack_lexer.parse(prgm_text)
-    logger.info("Program text successfully lexed")
-
-    # Parse the program
-    logger.debug("Attempting to construct the parser")
-    quack_parser = QuackParser()
-    logger.debug("Attempting to parse the tree")
-    quack_parser.visit(tree)
-    logger.info("Program text successfully parsed")
-
-    logger.trace("Outputted assembly:")
-    logger.trace(quack_parser.asm)
-    logger.trace(quack_parser.identifiers)
-
-    # Write program to output
-    output_file = "output.asm"
-    logger.debug("Attempting to write assembly output")
-    quack_parser.write_asm(output_file)
-    logger.info(f"Assembly successfully outputted to {output_file}")
-
+def gen_asm_code(tree, main_class):
+    logger.trace("Attempting to construct the code generator")
+    quack_gen = QuackASMGen()
+    logger.debug("Attempting to walk the tree to generate ASM")
+    quack_gen.visit(tree)
+    logger.debug("Attempting to generate the final asm")
+    asm = quack_gen.get_asm(main_class)
+    logger.debug("Successfully generated asm code")
+    return asm

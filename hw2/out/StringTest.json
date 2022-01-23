@@ -1,0 +1,56 @@
+{
+    "class_name": "StringTest",
+    "super": "Obj",
+    "imports": [
+        "Obj",
+        "String"
+    ],
+    "methods": [
+        "$constructor",
+        "string",
+        "print",
+        "equals"
+    ],
+    "fields": [],
+    "n_fields": 0,
+    "n_methods": 4,
+    "n_inherited": 4,
+    "constants": [
+        {
+            "kind": "s",
+            "value": "hello world"
+        },
+        {
+            "kind": "s",
+            "value": " \\\\should see two backslashes\nthis is a literal string\n"
+        }
+    ],
+    "code": [
+        {
+            "name": "$constructor",
+            "slot": 0,
+            "code": [
+                8,
+                2,
+                1,
+                0,
+                10,
+                3,
+                9,
+                3,
+                2,
+                2,
+                1,
+                1,
+                10,
+                4,
+                9,
+                4,
+                2,
+                2,
+                5,
+                0
+            ]
+        }
+    ]
+}

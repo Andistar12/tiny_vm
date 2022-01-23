@@ -1,0 +1,15 @@
+a:Int = 3 + 5 * 4;
+a.print();
+
+"\n".print();
+
+c : Boolean = true;
+c.print();
+
+"\n".print();
+
+b : Nothing = none;
+b.print();
+
+d : String = "\n";
+d.print();

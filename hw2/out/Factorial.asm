@@ -1,0 +1,101 @@
+.class Factorial:Obj
+
+.method $constructor
+.local factorial,iterator,str_i
+	const 1
+	store factorial
+	const 0
+	store iterator
+	const "Iteration "
+	store str_i
+	load iterator
+	const 1
+	call Int:plus
+	store iterator
+	load factorial
+	load iterator
+	call Int:times
+	store factorial
+	load str_i
+	call String:print
+	load iterator
+	call Int:print
+	const ": "
+	call String:print
+	load factorial
+	call Int:print
+	const "\n"
+	call String:print
+	load iterator
+	const 1
+	call Int:plus
+	store iterator
+	load factorial
+	load iterator
+	call Int:times
+	store factorial
+	load str_i
+	call String:print
+	load iterator
+	call Int:print
+	const ": "
+	call String:print
+	load factorial
+	call Int:print
+	const "\n"
+	call String:print
+	load iterator
+	const 1
+	call Int:plus
+	store iterator
+	load factorial
+	load iterator
+	call Int:times
+	store factorial
+	load str_i
+	call String:print
+	load iterator
+	call Int:print
+	const ": "
+	call String:print
+	load factorial
+	call Int:print
+	const "\n"
+	call String:print
+	load iterator
+	const 1
+	call Int:plus
+	store iterator
+	load factorial
+	load iterator
+	call Int:times
+	store factorial
+	load str_i
+	call String:print
+	load iterator
+	call Int:print
+	const ": "
+	call String:print
+	load factorial
+	call Int:print
+	const "\n"
+	call String:print
+	load iterator
+	const 1
+	call Int:plus
+	store iterator
+	load factorial
+	load iterator
+	call Int:times
+	store factorial
+	load str_i
+	call String:print
+	load iterator
+	call Int:print
+	const ": "
+	call String:print
+	load factorial
+	call Int:print
+	const "\n"
+	call String:print
+	return 0
