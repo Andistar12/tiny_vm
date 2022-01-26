@@ -3,12 +3,12 @@ Handles parsing the language. ASM code generation is in code_gen.py
 """
 
 from lark import Lark, v_args, Tree, Token
-from lark.visitors import Visitor_Recursive
+from lark.visitors import Transformer
 import sys
 import logging
 import log_helper
 
-logger = logging.getLogger("parser")
+logger = logging.getLogger("quack-parser")
 
 def compile_error(msg):
     logger.fatal(f"COMPILE ERROR: {msg}")
@@ -46,7 +46,7 @@ quack_grammar = """
 
 ?r_expr_atom: l_expr                                -> identifier_rhand
     | ESCAPED_STRING                                -> string_literal
-    | LONG_STRING                                   -> string_literal
+    | LONG_STRING                                   -> longstring_literal
     | INT                                           -> int_literal
     | "true"                                        -> boolean_literal_true
     | "false"                                       -> boolean_literal_false
@@ -79,6 +79,66 @@ quack_grammar = """
 %ignore CPP_COMMENT
 """
 
+@v_args(tree=True)
+class MethodInvokeCleanup(Transformer):
+
+    def method_invocation(self, tree):
+        logger.trace("Transforming method_invocation by swapping calling object and method identifier")
+        tree.children[0], tree.children[1] = tree.children[1], tree.children[0]
+        return tree
+
+    def method_add(self, tree):
+        logger.trace("Desugaring method_add into invocation of plus")
+        tree.data = "method_invocation"
+        tree.children.insert(0, "plus")
+        return tree
+
+    def method_sub(self, tree):
+        logger.trace("Desugaring method_add into invocation of minus")
+        tree.data = "method_invocation"
+        tree.children.insert(0, "minus")
+        return tree
+
+    def method_add(self, tree):
+        logger.trace("Desugaring method_add into invocation of times")
+        tree.data = "method_invocation"
+        tree.children.insert(0, "times")
+        return tree
+
+    def method_add(self, tree):
+        logger.trace("Desugaring method_add into invocation of divide")
+        tree.data = "method_invocation"
+        tree.children.insert(0, "divide")
+        return tree
+
+    def method_add(self, tree):
+        logger.trace("Desugaring method_add into invocation of negate")
+        tree.data = "method_invocation"
+        tree.children.insert(0, "negate")
+        return tree
+
+@v_args(tree=True)
+class StringLiteralCleanup(Transformer):
+
+    def longstring_literal(self, tree):
+        logger.trace("Desugaring longstring_literal into string_literal")
+        
+        tree.data = "string_literal"
+        
+        # Remove surrounding quotes
+        s = tree.children[0].value
+        if s.startswith("\"\"\"") or s.startswith("'''"):
+            s = s[3:-3]
+        if s.startswith("\""):
+            s = s[1:-1]
+
+        # Unescaping this string was difficult, I tried re.escape(s), 
+        # s.encode(unicode_escape), ast.literal_eval(s), r({}).format(s)
+        # TODO there has to be a cleaner way to encode string literals
+        s = "\"" + repr(s)[1:-1] + "\""
+        tree.children[0].value = s
+        return tree        
+
 def parse(prgm_text):
     # Lexes and parses the prgm
 
@@ -90,6 +150,13 @@ def parse(prgm_text):
     logger.debug("Atetmpting to generate the tree")
     tree = quack_lexer.parse(prgm_text)
     logger.debug("Successfully generated the AST")
+
+    # Cleanup the tree
+    logger.debug("Attempting to transform the tree")
+    tree = MethodInvokeCleanup().transform(tree)
+    tree = StringLiteralCleanup().transform(tree)
+    logger.trace(f"Transformed tree: {tree}")
+    logger.debug("Successfully transformed the tree")
 
     return tree
 

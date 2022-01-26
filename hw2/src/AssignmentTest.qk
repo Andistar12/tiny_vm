@@ -13,3 +13,11 @@ b.print();
 
 d : String = "\n";
 d.print();
+
+5.plus(3).print();
+
+"hello world\n".print();
+
+"""
+el psy congroo
+""".print();

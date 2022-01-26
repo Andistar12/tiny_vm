@@ -10,6 +10,7 @@ import sys
 import logging
 import log_helper
 
+from default_class_map import default_class_map
 
 logger = logging.getLogger("asm-code-gen")
 
@@ -23,9 +24,27 @@ def compile_error(msg):
 # Walks the tree (twice) and generates the end asm
 class QuackASMGen(Visitor_Recursive):
 
-    def __init__(self):
+    def __init__(self, main_class="Main"):
         self.identifiers = {} # Store local variable identifiers and data type
         self.asm = [] # Stores each assembly instruction
+        self.main_class = main_class # The name of the main class
+
+        # Setup method signatures of default
+        self.class_map = default_class_map
+        self.class_map[main_class] = {
+            "superclass":"Obj",
+            "field_list":{},
+            "method_returns":{
+                "$constructor":"Obj",
+                "string":"String",
+                "print":"Nothing"
+            },
+            "method_args":{
+                "$constructor":[],
+                "string":[],
+                "print":[]
+            }
+        }
 
     def infer_name_type(self, tree, ident, scope=None):
         # Attempt to infer the identifier type/class, and get the name of it
@@ -35,8 +54,6 @@ class QuackASMGen(Visitor_Recursive):
             if ident.data == "identifier":
                 return self.infer_name_type(tree, ident.children[1].value) # Token in index 1 spot
             elif ident.data.startswith("identifier"): # includes _lhand, _rhand, _method
-                return self.infer_name_type(tree, ident.children[0])
-            elif ident.data.startswith("method_"): # some sort of method invocation
                 return self.infer_name_type(tree, ident.children[0])
             elif ident.data == "int_literal":
                 return ident.children[0].value, "Int"
@@ -48,6 +65,18 @@ class QuackASMGen(Visitor_Recursive):
                 return "false", "Boolean"
             elif ident.data == "nothing_literal":
                 return "none", "Nothing"
+                
+            elif ident.data == "method_invocation":
+                # Validate method and class
+                _, clazz = self.infer_name_type(tree, tree.children[1]) # Get object class
+                ident, _ = self.infer_name_type(tree, tree.children[0]) # Get method name
+                
+                if clazz not in self.class_map:
+                    compile_error(f"Attempted to invoke method {ident} of unknown class {clazz}")
+                if ident not in self.class_map[clazz]["method_returns"]:
+                    compile_error(f"Attempted to invoke unknown method {ident} of class {clazz}")
+
+                return ident, self.class_map[clazz]["method_returns"][ident]
 
             else:
                 compile_error(f"Attempted to infer name and type of unknown tree type {ident.data} in {tree}")
@@ -123,18 +152,7 @@ class QuackASMGen(Visitor_Recursive):
 
     def string_literal(self, tree):
         logger.debug(f"Processed string literal: {tree}")
-        
-        # Remove surrounding quotes
-        s = tree.children[0].value
-        if s.startswith("\"\"\"") or s.startswith("'''"):
-            s = s[3:-3]
-        if s.startswith("\""):
-            s = s[1:-1]
-
-        # Unescaping this string was difficult, I tried re.escape(s), 
-        # s.encode(unicode_escape), ast.literal_eval(s), r({}).format(s)
-        # TODO there has to be a cleaner way to encode string literals
-        self.add_asm("const \"" + repr(s)[1:-1] + "\"")
+        self.add_asm("const " + tree.children[0].value)
 
     def int_literal(self, tree):
         logger.debug(f"Processed int literal: {tree}")
@@ -152,32 +170,34 @@ class QuackASMGen(Visitor_Recursive):
         logger.debug(f"Processed nothing literal: {tree}")
         self.add_asm("const none")
 
-    def method_add(self, tree):
-        logger.debug(f"Processed method add: {tree}")
-        _, clazz = self.infer_name_type(tree, tree.children[1])
-        self.add_asm(f"call {clazz}:plus")
-
-    def method_sub(self, tree):
-        logger.debug(f"Processed method sub: {tree}")
-        self.add_asm("call Int:minus")
-
-    def method_mul(self, tree):
-        logger.debug(f"Processed method mul: {tree}")
-        self.add_asm("call Int:times")
-
-    def method_div(self, tree):
-        logger.debug(f"Processed method div: {tree}")
-        self.add_asm("call Int:divide")
-
-    def method_neg(self, tree):
-        logger.debug(f"Processed method neg: {tree}")
-        self.add_asm("call Int:negate")
-
     def method_invocation(self, tree):
         logger.debug(f"Processed method invocation: {tree}")
-        _, clazz = self.infer_name_type(tree, tree.children[0]) # Get object class
-        ident, _ = self.infer_name_type(tree, tree.children[1]) # Get method name
+        _, clazz = self.infer_name_type(tree, tree.children[1]) # Get object class
+        ident, _ = self.infer_name_type(tree, tree.children[0]) # Get method name
+        
+        if clazz not in self.class_map:
+            compile_error(f"Attempted to invoke method {ident} of unknown class {clazz}")
+        if ident not in self.class_map[clazz]["method_returns"]:
+            compile_error(f"Attempted to invoke unknown method {ident} of class {clazz}")
+
+        # Validate arg length
+        method_args = self.class_map[clazz]["method_args"][ident]
+        givens = tree.children[2:]
+        if len(givens) != len(method_args):
+            compile_error(f"Method {ident} of class {clazz} given mismatched number of args (expected {len(method_args)}, got {len(givens)}")
+
+        # Validate args
+        for expected_type, given in zip(method_args, givens):
+            _, given_type = self.infer_name_type(tree, given)
+            if given_type != expected_type:
+                compile_error(f"Method {ident} of class {clazz} got unexpected type (expected {expected_type}, got {given_type}")
+                
         self.add_asm(f"call {clazz}:{ident}")
+        
+        # Pop the nothings
+        ret_type = self.class_map[clazz]["method_returns"][ident]
+        if ret_type == "Nothing":
+            self.add_asm("pop")
 
     def method_args(self, tree):
         logger.trace(f"Processed method args: {tree}")
@@ -195,11 +215,6 @@ class QuackASMGen(Visitor_Recursive):
             else:
                 self.visit(tree.children[1])
                 self.visit(tree.children[0])
-        elif tree.data == "method_sub" or tree.data == "method_div":
-            # Want to visit second operand before first operand
-            logger.trace("Processing method_sub/div, using custom traversal")
-            self.visit(tree.children[1])
-            self.visit(tree.children[0])
         else:
             # Default to normal traversal
             return super().visit(tree)
