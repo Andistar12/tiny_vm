@@ -31,7 +31,7 @@ class QuackASMGen(Visitor_Recursive):
 
         # Setup method signatures of default
         self.class_map = default_class_map
-        self.class_map[main_class] = {
+        self.class_map[main_class] = { # TODO deep copy from parent class
             "superclass":"Obj",
             "field_list":{},
             "method_returns":{
@@ -48,6 +48,7 @@ class QuackASMGen(Visitor_Recursive):
 
     def infer_name_type(self, tree, ident, scope=None):
         # Attempt to infer the identifier type/class, and get the name of it
+        # TODO remove tree param not really needed
 
         if isinstance(ident, Tree):
             # For identifiers, just recurse
@@ -68,8 +69,8 @@ class QuackASMGen(Visitor_Recursive):
                 
             elif ident.data == "method_invocation":
                 # Validate method and class
-                _, clazz = self.infer_name_type(tree, tree.children[1]) # Get object class
-                ident, _ = self.infer_name_type(tree, tree.children[0]) # Get method name
+                _, clazz = self.infer_name_type(tree, ident.children[1]) # Get object class
+                ident, _ = self.infer_name_type(tree, ident.children[0]) # Get method name
                 
                 if clazz not in self.class_map:
                     compile_error(f"Attempted to invoke method {ident} of unknown class {clazz}")
@@ -203,6 +204,10 @@ class QuackASMGen(Visitor_Recursive):
         logger.trace(f"Processed method args: {tree}")
 
     def visit(self, tree):
+
+        if not isinstance(tree, Tree):
+            return tree
+
         # For specific trees, need to visit them in special order
         if tree.data == "assignment":
             # Want to visit rhand before lhand
@@ -215,6 +220,11 @@ class QuackASMGen(Visitor_Recursive):
             else:
                 self.visit(tree.children[1])
                 self.visit(tree.children[0])
+        elif tree.data == "method_invocation":
+            # Want to visit method args in reverse order to put calling object on stack last
+            logger.trace("Processing method_invocation, using custom traversal")
+            for child in reversed(tree.children):
+                self.visit(child)
         else:
             # Default to normal traversal
             return super().visit(tree)

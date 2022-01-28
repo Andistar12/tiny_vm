@@ -94,25 +94,25 @@ class MethodInvokeCleanup(Transformer):
         return tree
 
     def method_sub(self, tree):
-        logger.trace("Desugaring method_add into invocation of minus")
+        logger.trace("Desugaring method_sub into invocation of minus")
         tree.data = "method_invocation"
         tree.children.insert(0, "minus")
         return tree
 
-    def method_add(self, tree):
-        logger.trace("Desugaring method_add into invocation of times")
+    def method_mul(self, tree):
+        logger.trace("Desugaring method_mul into invocation of times")
         tree.data = "method_invocation"
         tree.children.insert(0, "times")
         return tree
 
-    def method_add(self, tree):
-        logger.trace("Desugaring method_add into invocation of divide")
+    def method_div(self, tree):
+        logger.trace("Desugaring method_div into invocation of divide")
         tree.data = "method_invocation"
         tree.children.insert(0, "divide")
         return tree
 
-    def method_add(self, tree):
-        logger.trace("Desugaring method_add into invocation of negate")
+    def method_neg(self, tree):
+        logger.trace("Desugaring method_neg into invocation of negate")
         tree.data = "method_invocation"
         tree.children.insert(0, "negate")
         return tree
