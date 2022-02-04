@@ -1,0 +1,13 @@
+// A simple string
+t : String = "hello";
+t.print();
+
+// A more complicated string
+s : String = """ \\should see two backslashes
+this is a literal string
+""";
+s.print();
+
+// String concat
+t : String = t + " " + "world";
+t.print();

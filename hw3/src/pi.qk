@@ -1,0 +1,8 @@
+x : Int = 5;
+if x == 5 {
+    "yep".print();
+} elif x == 5 {
+    "maybe".print();
+} else {
+    "nope".print();
+}
