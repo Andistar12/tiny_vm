@@ -38,7 +38,8 @@ default_class_map = {
             "minus": ["Int"],
             "times": ["Int"],
             "divide": ["Int"],
-            "negate": []
+            "negate": [],
+            "equals": ["Obj"]
         }
     },
     "Boolean": {

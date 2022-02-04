@@ -14,6 +14,7 @@ if __name__ == "__main__":
     cliparser.add_argument("--log-level", "-D", metavar="log-level", default="INFO", help="Specifies the log level. Can be INFO, DEBUG, or TRACE. Default INFO")
     cliparser.add_argument("--main-class", "-m", metavar="clazz", default=None, help="Specifies the main class name. Default inferred from source filename")
     cliparser.add_argument("--output-dir", "-o", metavar="file", default=None, help="Specifies the output file directory. Default out/")
+    cliparser.add_argument("--png", "-p", metavar="filename", default=None, help="If set, visualizes the parsed tree as a PNG stored at given filename")
     cliparser.add_argument("source", metavar="<source>", help="The source program file")
     args = cliparser.parse_args()
 
@@ -42,6 +43,13 @@ if __name__ == "__main__":
     logger.debug("Attempting to parse the program")
     tree = parser.parse(prgm_text)
     logger.info("Successfully parsed the program")
+
+    # Visualize the tree
+    png_file = args.png
+    if png_file:
+        logger.debug("Attempting to save the tree as a PNG")
+        parser.visualize(tree, png_file)
+        logger.info(f"Successfully saved tree to file {png_file}")
 
     # Generate the assembly
     main_class = args.main_class
