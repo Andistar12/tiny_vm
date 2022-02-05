@@ -1,0 +1,11 @@
+x = 5;
+
+if x < 2 {
+    y = 2;
+    "nope".print();
+} else {
+    y = 3;
+}
+
+
+y.print();

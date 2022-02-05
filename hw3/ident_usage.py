@@ -23,7 +23,7 @@ def compile_error(msg):
 class IdentUsageCheck(Visitor_Recursive):
 
     def __init__(self):
-        self.idents = {}
+        self.idents = set()
 
     def get_ident_name(self, ident):
         # Gets the actual name of the identifier
@@ -47,7 +47,7 @@ class IdentUsageCheck(Visitor_Recursive):
         # We have now seen this variable, keep track of it
         ident = self.get_ident_name(tree)
         logger.trace(f"Logging identifier {ident} as seen from tree {tree}")
-        self.idents[ident] = 1
+        self.idents.add(ident)
 
     def identifier_rhand(self, tree):
         # We must check if we've seen this variable
@@ -55,6 +55,53 @@ class IdentUsageCheck(Visitor_Recursive):
         logger.trace(f"Checking whether identifier {ident} has been seen at tree {tree}")
         if ident not in self.idents:
             compile_error(f"Identifier {ident} has not been declared/assigned yet")
+
+
+    def visit(self, tree):
+
+        if not isinstance(tree, Tree):
+            return tree
+
+        # For if statement, need to take the intersection of both branches
+        elif tree.data == "if_structure":
+
+            ident = self.idents.copy()
+
+            # First visit conditional
+            self.visit(tree.children[0])
+
+            # Then visit branch 1 and get identiifers
+            self.visit(tree.children[1])
+            ident_branch1 = self.idents.copy()
+            self.idents = ident
+
+            # Then visit branch 2 (if exists) and get identifiers
+            if len(tree.children) > 2:
+                self.visit(tree.children[2])
+            ident_branch2 = self.idents.copy()
+            
+            # Finally, take intersection
+            logger.trace(f"branch1={ident_branch1} branch2={ident_branch2}")
+            self.idents = ident_branch1.intersection(ident_branch2)
+
+        # For while statement, just throw away any changes
+        elif tree.data == "while_structure":
+
+            ident = self.idents.copy()
+
+            # First visit conditional
+            self.visit(tree.children[0])
+
+            # Now visit child then reset idents
+            self.visit(tree.children[1])
+            self.idents = ident
+
+        else:
+            # Default to super
+            return super().visit(tree)
+
+        return tree
+
 
 def check(tree):
     logger.trace("Attempting to check identifier declaration consistency")

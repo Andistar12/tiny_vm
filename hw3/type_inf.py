@@ -1,5 +1,6 @@
 """
 Performs type inferencing on the given tree
+Also performs type checking on conditionals to make sure they are Boolean
 """
 
 from lark import Lark, v_args, Tree, Token
@@ -96,7 +97,7 @@ class TypeInferencer(Visitor_Recursive):
                 # Look for return type of method
                 method = self.get_ident_name(ident.children[0])
                 if method not in self.class_map[clazz]["method_returns"]:
-                    compile_error(f("Attempted to get return type of unknown method {method} in class {clazz}"))
+                    compile_error(f("Attempted to get return type of unknown method {method} in ident of class {clazz}"))
                 return self.class_map[clazz]["method_returns"][method]
             else:
                 compile_error(f"Attempted to infer type of unknown tree {ident}")
@@ -129,6 +130,42 @@ class TypeInferencer(Visitor_Recursive):
         else:
             compile_error(f"Attempted to get identifier name in unrecognizable object {ident}")
 
+    def if_structure(self, tree):
+        # Check first child is actually a conditional (subclass of Boolean)
+        clazz = self.infer_type(tree.children[0])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("If conditional does not have Boolean value")
+
+    def while_structure(self, tree):
+        # Check first child is actually a conditional (subclass of Boolean)
+        clazz = self.infer_type(tree.children[0])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("While conditional does not have Boolean value")
+
+    def cond_and(self, tree):
+        # Check both children are actually booleans
+        clazz = self.infer_type(tree.children[0])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("And expression does not have Boolean value")
+        clazz = self.infer_type(tree.children[1])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("And expression does not have Boolean value")
+
+    def cond_or(self, tree):
+        # Check both children are actually booleans
+        clazz = self.infer_type(tree.children[0])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("Or expression does not have Boolean value")
+        clazz = self.infer_type(tree.children[1])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("Or expression does not have Boolean value")
+   
+    def cond_not(self, tree):
+        # Check child is actually boolean
+        clazz = self.infer_type(tree.children[0])
+        if self.lca(clazz, "Boolean") != "Boolean":
+            compile_error("Not expression does not have Boolean value")
+
     def assignment(self, tree):
         # Get identifier name
         ident = self.get_ident_name(tree.children[0])
@@ -149,7 +186,8 @@ class TypeInferencer(Visitor_Recursive):
         return tree
 
     def assignment_decl(self, tree):
-        # Similar to assignment, but we also then remove the explicit declaration
+        # Similar to assignment, but we also then remove the explicit declaration 
+        # and transform it into a regular assignment node
 
         # Get identifier name
         ident = self.get_ident_name(tree.children[0])
@@ -185,6 +223,11 @@ def infer(tree):
         i.visit(tree)
 
     logger.trace("Successfully performed type inferencing. Got {i.idents}")
+
+    for ident in i.idents:
+        if i.idents[ident] == LATTICE_TOP or i.idents[ident] == LATTICE_BOTTOM:
+            compile_error(f"Identifier {ident} resulted in type {i.idents[ident]}")
+
     return i.idents
 
 
