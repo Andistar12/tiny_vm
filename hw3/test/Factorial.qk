@@ -1,3 +1,5 @@
+// Testing assignments and method invocation
+
 factorial : Int = 1; // The accumulator
 iterator : Int = 0; // The iterator for our loop
 str_i :String = "Iteration ";

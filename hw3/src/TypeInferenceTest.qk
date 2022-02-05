@@ -1,0 +1,11 @@
+// Testing type inferencing logic
+
+x = 5 + 3;
+y = x.string() + " [<-- should be 8]";
+z : Obj = y;
+"Below output should be some String:print\n".print();
+y.print(); // Should be String:print
+"\n".print();
+"Below output should be some Obj:print\n".print();
+z.print(); // Should be Obj:print
+"\n".print();

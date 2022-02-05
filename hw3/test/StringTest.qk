@@ -1,3 +1,5 @@
+// Testing string literals and string operations
+
 // A simple string
 t : String = "hello";
 t.print();

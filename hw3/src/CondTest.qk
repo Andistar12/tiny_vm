@@ -1,0 +1,27 @@
+// Testing if statement logic and also new int comparison native methods
+
+x = 5;
+
+if x == 0 {
+    "This is incorrect!".print();
+}
+
+if x > 4 {
+    "This is correct!".print();
+} else {
+    "This is incorrect!".print();
+}
+
+if x < 4 {
+    "This is incorrect!".print();
+} elif x >= 5 {
+    "This is also correct!".print();
+}
+
+if x == 3 {
+    "This is incorrect!".print();
+} elif x <= 2 {
+    "This is also incorrect!".print();
+} else {
+    "This is correct!".print();
+}

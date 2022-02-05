@@ -340,6 +340,86 @@ vm_Word method_String_less[] = {
         {.intval = 1}  // consume other
 };
 
+obj_ref native_String_more(void) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_String);
+    obj_String this_str = (obj_String) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_String);
+    obj_String other_str = (obj_String) other;
+    if (strcmp(this_str->text, other_str->text) > 0) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_String_more[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_load},
+        {.intval = 0},   // this
+        {.instr = vm_op_load},
+        {.intval = -1},  // other
+        {.instr = vm_op_call_native},
+        {.native = native_String_more},
+        {.instr = vm_op_return},
+        {.intval = 1}  // consume other
+};
+
+obj_ref native_String_atleast(void) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_String);
+    obj_String this_str = (obj_String) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_String);
+    obj_String other_str = (obj_String) other;
+    if (strcmp(this_str->text, other_str->text) >= 0) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_String_atleast[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_load},
+        {.intval = 0},   // this
+        {.instr = vm_op_load},
+        {.intval = -1},  // other
+        {.instr = vm_op_call_native},
+        {.native = native_String_atleast},
+        {.instr = vm_op_return},
+        {.intval = 1}  // consume other
+};
+
+obj_ref native_String_atmost(void) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_String);
+    obj_String this_str = (obj_String) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_String);
+    obj_String other_str = (obj_String) other;
+    if (strcmp(this_str->text, other_str->text) <= 0) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_String_atmost[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_load},
+        {.intval = 0},   // this
+        {.instr = vm_op_load},
+        {.intval = -1},  // other
+        {.instr = vm_op_call_native},
+        {.native = native_String_atmost},
+        {.instr = vm_op_return},
+        {.intval = 1}  // consume other
+};
+
+
+
 
 obj_ref native_String_plus(void) {
     obj_ref this = vm_fp->obj;
@@ -386,6 +466,9 @@ struct  class_struct  the_class_String_struct = {
         method_String_print,
         method_String_equals,
         method_String_less,
+        method_String_more,
+        method_String_atleast,
+        method_String_atmost,
         method_String_plus
 };
 
@@ -441,6 +524,24 @@ vm_Word method_Boolean_string[] = {
         {.intval = 0 }
 };
 
+obj_ref native_Boolean_negate() {
+    obj_ref this = vm_fp->obj;
+    if (this == lit_true) {
+        return lit_false;
+    } else {
+        return lit_true;
+    }
+}
+
+vm_Word method_Boolean_negate[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_call_native},
+        {.native = native_Boolean_negate},
+        {.instr = vm_op_return},
+        {.intval = 0 }
+};
+
+
 /* Inherit Obj:equals, since we have only two
  * objects of class Boolean.
  */
@@ -459,7 +560,8 @@ struct  class_struct  the_class_Boolean_struct = {
                  method_Boolean_constructor, // constructor
                  method_Boolean_string, // STRING
                  method_Obj_print, // PRINT
-                 method_Obj_equals  // EQUALS
+                 method_Obj_equals,  // EQUALS
+                method_Boolean_negate
                 }
 };
 
@@ -670,6 +772,79 @@ vm_Word method_Int_less[] = {
         {.intval = 1}
 };
 
+obj_ref native_Int_more(void ) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_Int);
+    obj_Int this_int = (obj_Int) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_Int);
+    obj_Int other_int = (obj_Int) other;
+    log_debug("Comparing integer values for order: %d < %d",
+           this_int->value, other_int->value);
+    if (this_int->value > other_int->value) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_Int_more[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_call_native},
+        {.native = native_Int_more},
+        {.instr = vm_op_return},
+        {.intval = 1}
+};
+
+obj_ref native_Int_atleast(void ) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_Int);
+    obj_Int this_int = (obj_Int) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_Int);
+    obj_Int other_int = (obj_Int) other;
+    log_debug("Comparing integer values for order: %d < %d",
+           this_int->value, other_int->value);
+    if (this_int->value >= other_int->value) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_Int_atleast[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_call_native},
+        {.native = native_Int_atleast},
+        {.instr = vm_op_return},
+        {.intval = 1}
+};
+
+obj_ref native_Int_atmost(void ) {
+    obj_ref this = vm_fp->obj;
+    assert_is_type(this, the_class_Int);
+    obj_Int this_int = (obj_Int) this;
+    obj_ref other = (vm_fp - 1)->obj;
+    assert_is_type(other, the_class_Int);
+    obj_Int other_int = (obj_Int) other;
+    log_debug("Comparing integer values for order: %d < %d",
+           this_int->value, other_int->value);
+    if (this_int->value <= other_int->value) {
+        return lit_true;
+    } else {
+        return lit_false;
+    }
+}
+
+vm_Word method_Int_atmost[] = {
+        {.instr = vm_op_enter},
+        {.instr = vm_op_call_native},
+        {.native = native_Int_atmost},
+        {.instr = vm_op_return},
+        {.intval = 1}
+};
+
+
 
 /* Int:plus (new native_method) */
 obj_ref native_Int_plus(void ) {
@@ -796,6 +971,9 @@ struct  class_struct  the_class_Int_struct = {
                 method_Obj_print, // PRINT
                 method_Int_equals,  // EQUALS
                 method_Int_less, // LESS
+                method_Int_more, // LESS
+                method_Int_atleast, // LESS
+                method_Int_atmost, // LESS
                 method_Int_plus,
                 method_Int_minus,
                 method_Int_times,

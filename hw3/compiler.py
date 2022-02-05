@@ -28,6 +28,8 @@ if __name__ == "__main__":
     import parser
     import code_gen
     import assemble
+    import ident_usage
+    import type_inf
     
     # Read entire program into memory
     prgm_file = args.source
@@ -51,12 +53,19 @@ if __name__ == "__main__":
         parser.visualize(tree, png_file)
         logger.info(f"Successfully saved tree to file {png_file}")
 
+    # Static semantic checks
+    logger.debug("Attempting to check identifier declaration vs usage")
+    ident_usage.check(tree) # Check tree declares identifiers before using them
+    logger.debug("Attempting to perform type inferencing on declarations")
+    inferred_types = type_inf.infer(tree) # Perform type inferencing
+    logger.info("Successfully performed static semantic checks on tree")
+
     # Generate the assembly
     main_class = args.main_class
     if main_class == None:
         main_class = "".join(os.path.basename(prgm_file).split(".")[:-1])
     logger.debug("Attempting to generate the assembly with main class name " + main_class)
-    asm = code_gen.gen_asm_code(tree, main_class)
+    asm = code_gen.gen_asm_code(tree, main_class, inferred_types)
     logger.info("Successfully generated the assembly code")
 
     output_dir = args.output_dir

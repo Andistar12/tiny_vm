@@ -1,5 +1,5 @@
 """
-Handles parsing the language. ASM code generation is in code_gen.py
+Handles parsing the language and perform tree transformation cleanup
 """
 
 from lark import Lark, v_args, Tree, Token, tree as lark_tree
@@ -23,7 +23,8 @@ quack_grammar = """
 
 // Definition of a statement: an expression or variable assignment or control structure
 ?statement: r_expr ";"                              -> statement
-    | l_expr (":" identifier)? "=" r_expr ";"       -> assignment
+    | l_expr "=" r_expr ";"       -> assignment
+    | l_expr ":" identifier "=" r_expr ";"          -> assignment_decl
     | "if" c_expr statement_block ("elif" c_expr statement_block)* ("else" statement_block)?        -> if_structure
     | "while" c_expr statement_block                -> while_structure
 
@@ -70,7 +71,7 @@ quack_grammar = """
     | "false"                                       -> boolean_literal_false
     | "none"                                        -> nothing_literal
     | "-" r_expr_atom                               -> method_neg
-    | "(" r_expr ")"                                -> identifier_rhand
+    | "(" r_expr ")"
 
 
 ?method_name: identifier                            -> identifier_method
@@ -209,15 +210,18 @@ class IfStatementCleanup(Transformer):
     # Converts if-elif-else statements into nested if-else statements
 
     def if_structure(self, tree):
-        logger.trace("Desugaring if-elif-else into nested if-else statements")
+        logger.trace(f"Desugaring if-elif-else into nested if-else statements {tree}")
 
         # Get what's part of this if statement
         cond, true_branch = tree.children[0], tree.children[1]
 
         # See whether there's an else branch
+        #else_branch = tree.children[-1] # Will be none if blank
+        #tree.children = tree.children[:-1]
         else_branch = None
         if len(tree.children) % 2 != 0:
-            else_branch = tree.children.pop()
+            else_branch = tree.children[-1]
+            tree.children.pop()
 
         # Collect all elif branches (c_expr, statement_block)
         elif_branches = [(tree.children[i], tree.children[i+1]) for i in range(2, len(tree.children), 2)]
@@ -227,12 +231,14 @@ class IfStatementCleanup(Transformer):
         for elif_branch in reversed(elif_branches):
             if nested_ifs == None:
                 # Init if tree with just one branch
-                nested_ifs = Tree("if_statement", [elif_branch[0], elif_branch[1]])
+                nested_ifs = Tree("if_structure", [elif_branch[0], elif_branch[1]])
             else:
                 # Otherwise nest a tree 
-                nested_ifs = Tree("if_statement", [elif_branch[0], elif_branch[1], nested_ifs])
+                nested_ifs = Tree("if_structure", [elif_branch[0], elif_branch[1], nested_ifs])
 
-        tree.children = [cond, true_branch, nested_ifs]
+        tree.children = [cond, true_branch]
+        if nested_ifs != None:
+            tree.children.append(nested_ifs)
         return tree
 
 

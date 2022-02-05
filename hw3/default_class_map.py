@@ -1,5 +1,5 @@
 """
-Contains the hardcoded method signatures of the primitive classes"
+Contains the hardcoded method signatures of the primitive classes
 """
 default_class_map = {
     "Obj": {
@@ -28,7 +28,11 @@ default_class_map = {
             "times": "Int",
             "divide": "Int",
             "negate": "Int",
-            "equals": "Boolean"
+            "equals": "Boolean",
+            "more": "Boolean",
+            "less": "Boolean",
+            "atleast": "Boolean",
+            "atmost": "Boolean"
         },
         "method_args": {
             "$constructor": ["TODO"],
@@ -39,7 +43,11 @@ default_class_map = {
             "times": ["Int"],
             "divide": ["Int"],
             "negate": [],
-            "equals": ["Obj"]
+            "equals": ["Obj"],
+            "less": ["Obj"],
+            "more": ["Obj"],
+            "atmost": ["Obj"],
+            "atleast": ["Obj"]
         }
     },
     "Boolean": {
@@ -49,13 +57,15 @@ default_class_map = {
             "$constructor": "Boolean",
             "string": "String",
             "print": "Nothing",
-            "equals": "Boolean"
+            "equals": "Boolean",
+            "negate": "Boolean"
         },
         "method_args": {
             "$constructor": [],
             "string": [],
             "print": [],
-            "equals": ["Obj"]
+            "equals": ["Obj"],
+            "negate": []
         }
     },
     "String": {
@@ -67,6 +77,9 @@ default_class_map = {
             "print": "Nothing",
             "equals": "Boolean",
             "less": "Boolean",
+            "more": "Boolean",
+            "atleast": "Boolean",
+            "atmost": "Boolean",
             "plus": "String"
         },
         "method_args": {
@@ -74,7 +87,10 @@ default_class_map = {
             "string": [],
             "print": [],
             "equals": ["Obj"],
-            "less": ["String"],
+            "less": ["Obj"],
+            "more": ["Obj"],
+            "atleast": ["Obj"],
+            "atmost": ["Obj"],
             "plus": ["String"]
         }
     }
