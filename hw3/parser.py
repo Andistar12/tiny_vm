@@ -25,6 +25,7 @@ quack_grammar = """
 ?statement: r_expr ";"                              -> statement
     | l_expr "=" r_expr ";"       -> assignment
     | l_expr ":" identifier "=" r_expr ";"          -> assignment_decl
+    // We do this mess to desugar it later
     | "if" c_expr statement_block ("elif" c_expr statement_block)* ("else" statement_block)?        -> if_structure
     | "while" c_expr statement_block                -> while_structure
 
@@ -216,8 +217,6 @@ class IfStatementCleanup(Transformer):
         cond, true_branch = tree.children[0], tree.children[1]
 
         # See whether there's an else branch
-        #else_branch = tree.children[-1] # Will be none if blank
-        #tree.children = tree.children[:-1]
         else_branch = None
         if len(tree.children) % 2 != 0:
             else_branch = tree.children[-1]
@@ -236,6 +235,7 @@ class IfStatementCleanup(Transformer):
                 # Otherwise nest a tree 
                 nested_ifs = Tree("if_structure", [elif_branch[0], elif_branch[1], nested_ifs])
 
+        # Remake tree using nested ifs as else branch
         tree.children = [cond, true_branch]
         if nested_ifs != None:
             tree.children.append(nested_ifs)

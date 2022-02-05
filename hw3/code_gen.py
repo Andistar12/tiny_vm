@@ -21,7 +21,7 @@ def compile_error(msg):
     sys.exit(1)
 
 
-# Walks the tree (twice) and generates the end asm
+# Walks the tree and generates the end asm
 class QuackASMGen(Visitor_Recursive):
 
     def __init__(self, main_class="Main", class_map = default_class_map, identifiers={}):
@@ -73,7 +73,6 @@ class QuackASMGen(Visitor_Recursive):
             elif ident.data == "string_literal":
                 return "String"
 
-
             # Identifiers may be nested but will have a token eventually
             elif ident.data == "identifier":
                 # If we have it return it, otherwise return the generic
@@ -106,11 +105,11 @@ class QuackASMGen(Visitor_Recursive):
         # Gets the actual name of the identifier
 
         if isinstance(ident, Tree):
-            # For identifiers, just recurse
             if ident.data == "identifier":
                 # TODO this will change when we add fields
                 return ident.children[0].value # Child is a token
             elif ident.data.startswith("identifier"):
+                # For identifiers, just recurse
                 return self.get_ident_name(ident.children[0]) # Recurse on only child
             else:
                 compile_error(f"Attempted to get identifier name in unknown tree type {ident.data} {ident}")
@@ -348,6 +347,7 @@ class QuackASMGen(Visitor_Recursive):
             self.visit(tree.children[1])
             self.visit(tree.children[0])
             self._call_userfunc(tree)
+
         elif tree.data == "method_invocation":
             # Want to visit method args in reverse order to put calling object on stack last
             logger.trace("Processing method_invocation, using custom traversal")

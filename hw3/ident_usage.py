@@ -37,6 +37,8 @@ class IdentUsageCheck(Visitor_Recursive):
                 return self.get_ident_name(ident.children[0]) # Recurse on only child
             else:
                 compile_error(f"Attempted to get identifier name in unknown tree type {ident.data} {ident}")
+        elif isinstance(ident, Token):
+            return ident.value
         else:
             compile_error(f"Attempted to get identifier name in unrecognizable tree {ident}")
 
