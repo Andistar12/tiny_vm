@@ -22,9 +22,9 @@ quack_grammar = """
 ?program: statement*                                -> program
 
 // Definition of a statement: an expression or variable assignment or control structure
-?statement: r_expr ";"                              -> statement
-    | l_expr "=" r_expr ";"       -> assignment
-    | l_expr ":" identifier "=" r_expr ";"          -> assignment_decl
+?statement: c_expr ";"                              -> statement
+    | l_expr "=" c_expr ";"       -> assignment
+    | l_expr ":" identifier "=" c_expr ";"          -> assignment_decl
     // We do this mess to desugar it later
     | "if" c_expr statement_block ("elif" c_expr statement_block)* ("else" statement_block)?        -> if_structure
     | "while" c_expr statement_block                -> while_structure
@@ -40,18 +40,18 @@ quack_grammar = """
 ?identifier: CNAME                                  -> identifier
 
 
-// Define special type to handle short circuiting
-// Also define comparison operators with this level of precedence
-// Note in Java that short circuit ops are higher precedence, not equal
-?c_expr: r_expr
-    | c_expr "and" r_expr                           -> cond_and
-    | c_expr "or" r_expr                            -> cond_or
-    | "not" c_expr                                  -> cond_not
-    | c_expr "==" r_expr                            -> method_eq
-    | c_expr "<=" r_expr                            -> method_leq
-    | c_expr ">=" r_expr                            -> method_geq
-    | c_expr "<" r_expr                             -> method_lt
-    | c_expr ">" r_expr                             -> method_gt
+// Define special type to handle short circuiting, at highest precedence
+?c_expr: cc_expr
+    | c_expr "and" cc_expr                           -> cond_and
+    | c_expr "or" cc_expr                            -> cond_or
+
+// Define comparison operations at very high precedence
+?cc_expr: r_expr
+    | cc_expr "==" r_expr                            -> method_eq
+    | cc_expr "<=" r_expr                            -> method_leq
+    | cc_expr ">=" r_expr                            -> method_geq
+    | cc_expr "<" r_expr                             -> method_lt
+    | cc_expr ">" r_expr                             -> method_gt
 
 // Definition of a right-hand expression: an identifier, literal, binary operator, or method invocation
 // Arranged to handle arithmetic precedence
@@ -71,8 +71,9 @@ quack_grammar = """
     | "true"                                        -> boolean_literal_true
     | "false"                                       -> boolean_literal_false
     | "none"                                        -> nothing_literal
-    | "-" r_expr_atom                               -> method_neg
-    | "(" r_expr ")"
+    | "-" c_expr                                    -> method_neg
+    | "not" c_expr                                  -> cond_not
+    | "(" c_expr ")"
 
 
 ?method_name: identifier                            -> identifier_method
@@ -81,8 +82,6 @@ quack_grammar = """
 // Useful provided defaults
 %import common.INT
 %import common.ESCAPED_STRING
-%import common.WORD
-%import common.LETTER
 %import common.CNAME
 %import python.LONG_STRING
 

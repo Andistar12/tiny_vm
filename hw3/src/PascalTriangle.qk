@@ -3,6 +3,10 @@
 
 triangle_height = 15; // Total height of the triangle
 
+"This program should print out ".print();
+triangle_height.print();
+" rows of Pascal's triangle\n\n".print();
+
 row = 0;
 while row < triangle_height { // Iterate each row
 

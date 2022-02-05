@@ -11,6 +11,7 @@ import logging
 import log_helper
 
 from default_class_map import default_class_map
+from type_inf import tree_type_table
 
 logger = logging.getLogger("asm-code-gen")
 
@@ -61,17 +62,9 @@ class QuackASMGen(Visitor_Recursive):
         # Attempts to infer the type of this tree
 
         if isinstance(ident, Tree):
-            # Hardcode the literal cases (only five of them)
-            if ident.data == "boolean_literal_false":
-                return "Boolean"
-            elif ident.data == "boolean_literal_true":
-                return "Boolean"
-            elif ident.data == "nothing_literal":
-                return "Nothing"
-            elif ident.data == "int_literal":
-                return "Int"
-            elif ident.data == "string_literal":
-                return "String"
+            # See if tree node has known type
+            if ident.data in tree_type_table:
+                return tree_type_table[ident.data]
 
             # Identifiers may be nested but will have a token eventually
             elif ident.data == "identifier":
@@ -209,7 +202,7 @@ class QuackASMGen(Visitor_Recursive):
     def cond_and(self, tree):
         # Needs a label to use skip over. See if there's an active label
         # set by a control structure first
-        label = self.sc_false if self.sc_false else self.get_label("and")
+        label = self.sc_false if self.sc_false else self.gen_label("and")
         logger.trace(f"Processed cond_and with label {label}: {tree}")
         
         # Visit first child
@@ -222,12 +215,12 @@ class QuackASMGen(Visitor_Recursive):
         self.visit(tree.children[1])
 
         # Add label
-        self.add_asm(f".{label}")
+        self.add_asm(f".label {label}")
 
     def cond_or(self, tree):
         # Needs a label to use skip over. See if there's an active label
         # set by a control structure first
-        label = self.sc_true if self.sc_true else self.get_label("or")
+        label = self.sc_true if self.sc_true else self.gen_label("or")
         logger.trace(f"Processed cond_or with label {label}: {tree}")
         
         # Visit first child
@@ -240,7 +233,7 @@ class QuackASMGen(Visitor_Recursive):
         self.visit(tree.children[1])
 
         # Add label
-        self.add_asm(f".{label}")
+        self.add_asm(f".label {label}")
 
     def cond_not(self, tree):
         logger.trace(f"Processed cond_not: {tree}")

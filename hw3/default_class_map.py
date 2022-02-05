@@ -8,12 +8,14 @@ default_class_map = {
         "method_returns": {
             "$constructor": "Obj",
             "string": "String",
-            "print": "Nothing"
+            "print": "Nothing",
+            "equals": "Boolean"
         },
         "method_args": {
             "$constructor": [],
             "string": [],
-            "print": []
+            "print": [],
+            "equals": ["Obj"]
         }
     },
     "Int": {

@@ -12,6 +12,17 @@ from default_class_map import default_class_map
 
 logger = logging.getLogger("type-inferencer")
 
+# Default classes for certain tree nodes
+tree_type_table = {
+    "boolean_literal_false": "Boolean",
+    "boolean_literal_true": "Boolean",
+    "nothing_literal": "Nothing",
+    "int_literal": "Int",
+    "string_literal": "String",
+    "cond_and": "Boolean",
+    "cond_not": "Boolean",
+    "cond_or": "Boolean"
+}
 
 def compile_error(msg):
     # Caught some compile-time error
@@ -67,17 +78,9 @@ class TypeInferencer(Visitor_Recursive):
         # Attempts to infer the type of this tree
 
         if isinstance(ident, Tree):
-            # Hardcode the literal cases (only five of them)
-            if ident.data == "boolean_literal_false":
-                return "Boolean"
-            elif ident.data == "boolean_literal_true":
-                return "Boolean"
-            elif ident.data == "nothing_literal":
-                return "Nothing"
-            elif ident.data == "int_literal":
-                return "Int"
-            elif ident.data == "string_literal":
-                return "String"
+            # Check for default cases
+            if ident.data in tree_type_table:
+                return tree_type_table[ident.data]
 
             # Identifiers may be nested but will have a token eventually
             elif ident.data == "identifier":
