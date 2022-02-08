@@ -1,3 +1,17 @@
+# HW 3
+
+I added a Bash script `quack.sh` which compiles and runs all available Quack programs at one time. Just run the script with no CLI arguments. You may need to change the parameters at the top of the script to set the correct tiny_vm binary location and etc.
+
+Implementation discussion can be found in `hw3/README.md`
+
+To manually compile and run a program:
+
+1. `cd hw3` to go to the hw3 folder
+2. Run `python3 compiler.py <source file>`, you can use `src/PascalTriangle.qk` as an example
+3. `cd ../` to go to root folder
+4. `cp <obj file> OBJ/` to make object code visible to the vm. For PascalTriangle.qk it is in `hw3/out/PascalTriangle.json`
+5. Now run `./tiny_vm <main class>` for PascalTriangle.qk it is `PascalTriangle`
+
 # HW 2
 
 I integrated the assembler into my compiler to streamline compilation. Main class name and output files are by default inferred from the input source file name, can be overriden. Run the compiler with `-h` for more info.

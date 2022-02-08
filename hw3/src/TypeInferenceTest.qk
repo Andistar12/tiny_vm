@@ -11,3 +11,12 @@ y.print(); // Should be String:print
 "Below output should be a Obj:print invocation\n".print();
 z.print(); // Should be Obj:print
 "\n".print();
+
+if x == 8 {
+    w = "This is correct!\n";
+} else {
+    w = "This is incorrect!\n";
+}
+
+w.print();
+

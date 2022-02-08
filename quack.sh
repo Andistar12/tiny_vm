@@ -11,7 +11,7 @@ TINY_VM="./tiny_vm"
 OBJ_LIB="OBJ/"
 
 # The output folder for the compiler
-OUT="out/"
+OUT="out"
 
 # The homework folder to grade
 COMPILER_FOLDER=hw3
@@ -20,6 +20,15 @@ COMPILER_FOLDER=hw3
 COMPILER="python3 $COMPILER_FOLDER/compiler.py -o $OUT"
 
 # ------
+
+echo
+echo "Script Parameters":
+echo "TINY_VM location: $TINY_VM"
+echo "OBJ lib folder: $OBJ_LIB"
+echo "Compiler output folder: $OUT"
+echo "Compiler working directory: $COMPILER_FOLDER"
+echo "Compiler exec command: $COMPILER"
+echo
 
 SRC_FILES=$(ls -Sr $COMPILER_FOLDER/src)
 
