@@ -1,0 +1,61 @@
+// Testing assignments and method invocation
+
+factorial : Int = 1; // The accumulator
+iterator : Int = 0; // The iterator for our loop
+str_i :String = "Iteration ";
+
+// Iteration 1
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+
+// Iteration 2
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+
+// Iteration 3
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+
+// Iteration 4
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+
+/*
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+*/
+
+// Iteration 5
+iterator = iterator + 1;
+factorial = factorial * iterator;
+str_i.print();
+iterator.print();
+": ".print();
+factorial.print();
+"\n".print();
+

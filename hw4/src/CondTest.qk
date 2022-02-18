@@ -1,0 +1,49 @@
+// Testing if statement logic and also new int comparison native methods
+
+"This program should print out a bunch of 'correct' statements to test conditionals\n\n".print();
+
+x = 5;
+
+if x == 0 {
+    "This is incorrect!\n".print();
+}
+
+if x > 4 {
+    "This is correct!\n".print();
+} else {
+    "This is incorrect!\n".print();
+}
+
+if x < 4 {
+    "This is incorrect!\n".print();
+} elif x >= 5 {
+    "This is also correct!\n".print();
+}
+
+if x == 3 {
+    "This is incorrect!\n".print();
+} elif x <= 2 {
+    "This is also incorrect!\n".print();
+} else {
+    "This is correct!\n".print();
+}
+
+z : Obj = x;
+
+if z == x {
+    "I think this is correct!\n".print();
+} else {
+    "I think this is incorrect!\n".print();
+}
+
+y = x == 5 and not z == x;
+
+"This should be false: ".print();
+y.print();
+"\n".print();
+
+if z == x or z == 4 {
+    "This is correct\n".print();
+} else {
+    "This is incorrect\n".print();
+}
