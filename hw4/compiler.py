@@ -40,10 +40,14 @@ if __name__ == "__main__":
     if prgm_text == "":
         logger.warning("The source file is empty")
     logger.info("Successfully read in the program text")
+
+    main_class = args.main_class
+    if main_class == None:
+        main_class = "".join(os.path.basename(prgm_file).split(".")[:-1])
     
     # Parse the program
     logger.debug("Attempting to parse the program")
-    tree = parser.parse(prgm_text)
+    tree = parser.parse(prgm_text, main_class=main_class)
     logger.info("Successfully parsed the program")
 
     # Visualize the tree
@@ -61,11 +65,8 @@ if __name__ == "__main__":
     logger.info("Successfully performed static semantic checks on tree")
 
     # Generate the assembly
-    main_class = args.main_class
-    if main_class == None:
-        main_class = "".join(os.path.basename(prgm_file).split(".")[:-1])
     logger.debug("Attempting to generate the assembly with main class name " + main_class)
-    asm = code_gen.gen_asm_code(tree, main_class, inferred_types)
+    asm_output = code_gen.gen_asm_code(tree, main_class, inferred_types)
     logger.info("Successfully generated the assembly code")
 
     output_dir = args.output_dir
@@ -73,14 +74,15 @@ if __name__ == "__main__":
         output_dir = "out"
 
     # Output the assembly
-    output_file = f"{output_dir}/{main_class}.asm"
-    logger.debug("Attempting to output assembly code to file " + output_file)
-    os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
-    with open(output_file, "w") as f:
-        for line in asm:
-            f.write(line)
-            f.write("\n")
-    logger.info("Successfully written assembly to file " + output_file)
+    for clazz in asm_output:
+        output_file = f"{output_dir}/{clazz}.asm"
+        logger.debug("Attempting to output assembly code to file " + output_file)
+        os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
+        with open(output_file, "w") as f:
+            for line in asm_output[clazz]:
+                f.write(line)
+                f.write("\n")
+        logger.info("Successfully written assembly to file " + output_file)
 
     # Generate the object code
     logger.debug("Attempting to generate object code")

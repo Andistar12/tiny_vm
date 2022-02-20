@@ -26,9 +26,12 @@ def compile_error(msg):
 class QuackASMGen(Visitor_Recursive):
 
     def __init__(self, main_class="Main", class_map = default_class_map, identifiers={}):
-        self.idents = identifiers # Store local variable identifiers and data type
-        self.asm = [] # Stores each assembly instruction
-        self.main_class = main_class # The name of the main class
+        self.asm = {} # Stores each assembly instruction
+        self.main_class = main_class
+
+        # Specifies which class and method we are in
+        self.curr_class = ""
+        self.curr_method = ""
 
         # Control flow short circuit helpers
         self.label_counts = {}
@@ -37,20 +40,6 @@ class QuackASMGen(Visitor_Recursive):
 
         # Setup method signatures of default
         self.class_map = class_map
-        self.class_map[main_class] = { # TODO deep copy from parent class
-            "superclass":"Obj",
-            "field_list":{},
-            "method_returns":{
-                "$constructor":"Obj",
-                "string":"String",
-                "print":"Nothing"
-            },
-            "method_args":{
-                "$constructor":[],
-                "string":[],
-                "print":[]
-            }
-        }
 
     def gen_label(self, prefix):
         # Generates a new label with given prefix
@@ -62,24 +51,38 @@ class QuackASMGen(Visitor_Recursive):
         # Attempts to infer the type of this tree
 
         if isinstance(ident, Tree):
-            # See if tree node has known type
+            # Check for default cases
             if ident.data in tree_type_table:
                 return tree_type_table[ident.data]
 
+            # Check for fields
+            elif ident.data.startswith("identifier_field"):
+                if "this" in ident.data:
+                    clazz = self.curr_class
+                    name = ident.children[0].value
+                else:
+                    clazz = self.infer_type(ident.children[0])
+                    name = ident.children[1].value
+                if clazz not in self.class_map:
+                    compile_error(f"Attempted to get field from unknown class {clazz}")
+                return self.class_map[clazz]["field_list"][name]
+
             # Identifiers may be nested but will have a token eventually
-            elif ident.data == "identifier":
-                # If we have it return it, otherwise return the generic
-                return self.idents[ident.children[0].value]
             elif ident.data.startswith("identifier"):
-                # Nested "identifier" tree nodes
-                return self.infer_type(ident.children[0])
+                name = self.get_ident_name(ident.children[0])
+                return self.class_map[self.curr_class]["method_locals"][self.curr_method][name]
 
             elif ident.data == "method_invocation":
                 # See what type the calling object is first
                 clazz = self.infer_type(ident.children[1])
                 # Look for return type of method
                 method = self.get_ident_name(ident.children[0])
+                if method not in self.class_map[clazz]["method_returns"]:
+                    compile_error(f"Attempted to get return type of unknown method {method} in ident of class {clazz}")
                 return self.class_map[clazz]["method_returns"][method]
+
+            elif ident.data == "obj_instantiation":
+                return self.get_ident_name(ident.children[0])
             else:
                 compile_error(f"Attempted to infer type of unknown tree {ident}")
 
@@ -95,14 +98,13 @@ class QuackASMGen(Visitor_Recursive):
             compile_error(f"Attempted to infer type of unknown object {ident}")
 
     def get_ident_name(self, ident):
-        # Gets the actual name of the identifier
+        # Gets the actual name of an identifier
 
         if isinstance(ident, Tree):
-            if ident.data == "identifier":
-                # TODO this will change when we add fields
-                return ident.children[0].value # Child is a token
-            elif ident.data.startswith("identifier"):
-                # For identifiers, just recurse
+            # For identifiers, just recurse
+            if ident.data.startswith("identifier"):
+                if "field" in ident.data and "this" not in ident.data:
+                    return self.get_ident_name(ident.children[1])
                 return self.get_ident_name(ident.children[0]) # Recurse on only child
             else:
                 compile_error(f"Attempted to get identifier name in unknown tree type {ident.data} {ident}")
@@ -111,30 +113,54 @@ class QuackASMGen(Visitor_Recursive):
         else:
             compile_error(f"Attempted to get identifier name in unrecognizable object {ident}")
       
-    def get_asm(self, main_class="Main"):
-        # Generates the fully-formatted assembly program, line by line
+    def get_asm(self):
+
         logger.trace("Writing assembly for program")
-        self.add_asm("return 0")
+        ret_asm = {}
 
-        asm = [f".class {main_class}:Obj", "", ".method $constructor"]
-        if len(self.idents.keys()) > 0:
-            asm.append(".local " + ",".join(self.idents.keys()))
+        # Return the ASM code in a dictionary per class
+        for clazz in self.asm:
+            logger.trace(f"Writing assembly for class {clazz}")
+            class_code = []
 
-        for line in self.asm:
-            if line.startswith(".label"):
-                asm.append(line[7:] + ":")
-            else:
-                asm.append("\t" + line)
+            # Add class info
+            superclass = self.class_map[clazz]["superclass"]
+            class_code.append(f".class {clazz}:{superclass}")
+            for field in self.class_map[clazz]["field_list"]:
+                class_code.append(f".field {field}")
 
+            # Add method
+            for method in self.class_map[clazz]["method_arg_names"]:
+                logger.trace(f"Writing assembly for method {method} in class {clazz}")
+                class_code.append(f".method {method}")
+
+                # Add method args and class code
+                method_args = self.class_map[clazz]["method_arg_names"][method]
+                local_vars = [x for x in self.class_map[clazz]["method_locals"][method] if x not in method_args]
+                if len(method_args) > 0:
+                    class_code.append(f".args {','.join(method_args)}")
+                if len(local_vars) > 0:
+                    class_code.append(f".local {','.join(local_vars)}")
+
+                # Generate method code
+                for line in self.asm[self.curr_class][self.curr_method]:
+                    if line.startswith(".label"):
+                        class_code.append(line[7:] + ":")
+                    else:
+                        class_code.append("\t" + line)
+
+            ret_asm[clazz] = class_code
 
         logger.trace("Generated assembly for program")
-        logger.trace(asm)
-        return asm
+        logger.trace(ret_asm)
+        return ret_asm
 
     def add_asm(self, line):
         # Adds a line of assembly to the output
         logger.debug("Generated assembly: " + line)
-        self.asm.append(line)
+        code = self.asm[self.curr_class][self.curr_method]
+        code.append(line)
+        self.asm[self.curr_class][self.curr_method] = code
 
     def program(self, tree):
         logger.trace(f"Processed program: {tree}")
@@ -149,6 +175,32 @@ class QuackASMGen(Visitor_Recursive):
 
     def identifier_lhand(self, tree):
         logger.trace(f"Processed identifier_lhand: {tree}")
+
+    def identifier_field_rhand_this(self, tree):
+        logger.debug(f"Processed identifier_field_rhand_this: {tree}")
+        ident = self.get_ident_name(tree.children[0])
+        self.add_asm(f"load $")
+        self.add_asm(f"load_field $:{ident}")
+
+    def identifier_field_lhand_this(self, tree):
+        logger.debug(f"Processed identifier_field_lhand_this: {tree}")
+        ident = self.get_ident_name(tree.children[0])
+        self.add_asm(f"load $")
+        self.add_asm(f"store_field $:{ident}")
+
+    def identifier_field_rhand(self, tree):
+        logger.debug(f"Processed identifier_field_rhand: {tree}")
+        ident = self.get_ident_name(tree.children[1])
+        # Calling object shjould already be on the stack
+        clazz = self.infer_type(tree.children[0])
+        self.add_asm(f"load_field {clazz}:ident")
+
+    def identifier_field_lhand(self, tree):
+        logger.debug(f"Processed identifier_field_lhand: {tree}")
+        ident = self.get_ident_name(tree.children[1])
+        # Calling object shjould already be on the stack
+        clazz = self.infer_type(tree.children[0])
+        self.add_asm(f"store_field {clazz}:ident")
 
     def statement(self, tree):
         logger.trace(f"Processed statement: {tree}")
@@ -328,6 +380,26 @@ class QuackASMGen(Visitor_Recursive):
         self.sc_true = None
         self.sc_false = None
 
+    def clazz(self, tree):
+        logger.trace(f"Processed clazz: {tree}")
+
+        # First set current class
+        self.curr_class = self.get_ident_name(tree.children[0])
+        self.asm[self.curr_class] = {}
+
+        # Now visit third child, which is class body
+        self.visit(tree.children[2])
+
+    def class_method(self, tree):
+        logger.trace(f"Processed method: {tree}")
+
+        # First set current method
+        self.curr_method = self.get_ident_name(tree.children[0])
+        self.asm[self.curr_class][self.curr_method] = []
+
+        # Now visit body (fourth child)
+        self.visit(tree.children[3])
+
     def visit(self, tree):
 
         if not isinstance(tree, Tree):
@@ -356,12 +428,19 @@ class QuackASMGen(Visitor_Recursive):
             # and/or/not (has short circuit logic). Do not visit children, let method handle it
             self._call_userfunc(tree)
 
+        elif tree.data == "clazz":
+            # Let class handle itself
+            self._call_userfunc(tree)
+
+        elif tree.data == "class_method":
+            # Let method handle itself
+            self._call_userfunc(tree)
+
         else:
             # Default to normal traversal
             return super().visit(tree)
 
         return tree
-
 
 def gen_asm_code(tree, main_class, idents):
     logger.trace("Attempting to construct the code generator")
@@ -369,6 +448,6 @@ def gen_asm_code(tree, main_class, idents):
     logger.debug("Attempting to walk the tree to generate ASM")
     quack_gen.visit(tree)
     logger.debug("Attempting to generate the final asm")
-    asm = quack_gen.get_asm(main_class)
+    asm = quack_gen.get_asm()
     logger.debug("Successfully generated asm code")
     return asm

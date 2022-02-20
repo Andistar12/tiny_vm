@@ -23,6 +23,7 @@ def compile_error(msg):
 class IdentUsageCheck(Visitor_Recursive):
 
     def __init__(self):
+        self.constructor = False # Whether we are currently in a constructor
         self.idents = set()
         self.class_idents = set()
         self.class_idents_seen = set()
@@ -33,7 +34,6 @@ class IdentUsageCheck(Visitor_Recursive):
         if isinstance(ident, Tree):
             # For identifiers, just recurse
             if ident.data == "identifier":
-                # TODO this will change when we add fields
                 return ident.children[0].value # Child is a token
             elif ident.data.startswith("identifier"):
                 return self.get_ident_name(ident.children[0]) # Recurse on only child
@@ -56,7 +56,8 @@ class IdentUsageCheck(Visitor_Recursive):
         # Have now seen this field variable, add to class
         ident = self.get_ident_name(tree.children[0])
         logger.trace(f"Logging field identifier {ident} as seen from tree {tree}")
-        self.class_idents.add(ident)
+        if self.constructor: # Class fields must defined in constructor
+            self.class_idents.add(ident)
         self.class_idents_seen.add(ident)
 
     def identifier_field_rhand_this(self, tree):
@@ -78,39 +79,38 @@ class IdentUsageCheck(Visitor_Recursive):
         if not isinstance(tree, Tree):
             return tree
 
-        # For class, flush working set and set to constructor mode
+        # For class, flush class identifier list
         elif tree.data == "class":
             self.class_idents = set()
             self.class_idents_seen = set()
             self.idents = set()
             
-            # Add formal args to constructor set
-            if tree.children[1].data == "formal_args":
-                f_args = tree.children[1].children
-                for i in range(0, len(f_args), 2):
-                    self.idents.add(f_args[i].children[0].value)
-
             class_name = self.get_ident_name(tree.children[0])
             logger.trace(f"Class {class_name} has base ident set {self.idents}") 
 
             # Now visit class body
             self.visit(tree.children[-1])
 
+            # Now make sure every identifier seen has been used
+            logger.debug(f"Checking class field usage for clas {class_name} with detected field set {self.class_idents}") 
+            for ident in self.class_idents_seen:
+                if ident not in self.class_idents:
+                    compile_error(f"Class field {ident} used before declaration somewhere")
+            self.class_idents_seen = set()
+
+
         elif tree.data == "class_method":
-            # First check whether class idents have been seen
-            if len(self.class_idents_seen) > 0:
-                logger.trace(f"Currently hvae class ident set {self.class_idents}") 
-                for ident in self.class_idents_seen:
-                    if ident not in self.class_idents:
-                        compile_error(f"Class field {ident} used before declaration somewhere")
-                self.class_idents_seen = set()
-            self.idents = set()
+            # First set constructor mode on/off
+            if tree.children[0].children[0].value == "$constructor":
+                self.constructor = True
+            else:
+                self.constructor = False
 
             # Add formal args to method set
-            if tree.children[1].data == "formal_args":
-                f_args = tree.children[1].children
-                for i in range(0, len(f_args), 2):
-                    self.idents.add(f_args[i].children[0].value)
+            f_args = tree.children[1].children
+            self.idents = set()
+            for i in range(0, len(f_args), 2):
+                self.idents.add(f_args[i].children[0].value)
 
             method_name = self.get_ident_name(tree.children[0])
             logger.trace(f"Method {method_name} has base ident set {self.idents}") 

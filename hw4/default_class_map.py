@@ -16,7 +16,9 @@ default_class_map = {
             "string": [],
             "print": [],
             "equals": ["Obj"]
-        }
+        },
+        "method_locals": {},
+        "method_arg_names": {}
     },
     "Int": {
         "superclass": "Obj",
@@ -50,7 +52,9 @@ default_class_map = {
             "more": ["Obj"],
             "atmost": ["Obj"],
             "atleast": ["Obj"]
-        }
+        },
+        "method_locals": {},
+        "method_arg_names": {}
     },
     "Boolean": {
         "superclass": "Obj",
@@ -68,11 +72,12 @@ default_class_map = {
             "print": [],
             "equals": ["Obj"],
             "negate": []
-        }
+        },
+        "method_locals": {}
     },
     "String": {
         "superclass": "Obj",
-        "field_list": [],
+        "field_list": {},
         "method_returns": {
             "$constructor": "String",
             "string": "String",
@@ -94,6 +99,26 @@ default_class_map = {
             "atleast": ["Obj"],
             "atmost": ["Obj"],
             "plus": ["String"]
-        }
+        },
+        "method_locals": {},
+        "method_arg_names": {}
+    },
+    "Nothing": {
+        "superclass": "Obj",
+        "field_list": {},
+        "method_returns": {
+            "$constructor": "Nothing",
+            "string": "String",
+            "print": "Nothing",
+            "equals": "Boolean"
+        },
+        "method_args": {
+            "$constructor": [],
+            "string": [],
+            "print": [],
+            "equals": ["Obj"],
+        },
+        "method_locals": {},
+        "method_arg_names": {}
     }
 }

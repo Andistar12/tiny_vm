@@ -22,10 +22,12 @@ quack_grammar = """
 ?program: clazz* statement*                         -> program
 
 // Definition of a class: see manual
-?clazz: "class" identifier "(" formal_args? ")" ("extends" identifier)? class_body              -> class
+?clazz: "class" identifier "(" formal_args? ")" ("extends" identifier)? class_body              -> clazz
 
 // Formal arguments
 ?formal_args: identifier ":" identifier ("," identifier ":" identifier)*                        -> formal_args
+
+?formal_arg: identifier 
 
 // Class body: statements then methods
 ?class_body: "{" statement* class_method* "}"       -> class_body
@@ -90,6 +92,7 @@ quack_grammar = """
     | "true"                                        -> boolean_literal_true
     | "false"                                       -> boolean_literal_false
     | "none"                                        -> nothing_literal
+    | "this"                                        -> this_ptr
     | "-" c_expr                                    -> method_neg
     | "not" c_expr                                  -> cond_not
     | "(" c_expr ")"
@@ -192,13 +195,23 @@ class IdentifierCleanup(Transformer):
     # Cleans up the nested identifier mess created by the grammar
 
     def identifier_rhand(self, tree):
-        logger.trace("Replacing identifier_rhand with identifier")
+        logger.trace("Replacing identifier_rhand with identifier token")
         tree.children[0] = tree.children[0].children[0]
         return tree
 
     def identifier_method(self, tree):
-        logger.trace("Replacing identifier_method with identifier")
+        logger.trace("Replacing identifier_method with identifier token")
         return tree.children[0]
+
+    def identifier_field_rhand_this(self, tree):
+        logger.trace("Replacing identifier_field_rhand_this with identifier token")
+        tree.children[0] = tree.children[0].children[0]
+        return tree
+
+    def identifier_field_lhand_this(self, tree):
+        logger.trace("Replacing identifier_field_lhand_this with identifier token")
+        tree.children[0] = tree.children[0].children[0]
+        return tree
 
 
 @v_args(tree=True)
@@ -259,6 +272,105 @@ class IfStatementCleanup(Transformer):
             tree.children.append(nested_ifs)
         return tree
 
+@v_args(tree=True)
+class LooseStatementCleanup(Transformer):
+    # Puts the "class-less" statements into their own class
+
+    def __init__(self, main_class):
+        self.main_class = main_class
+
+    def program(self, tree):
+        logger.trace(f"Desugaring loose statements into new class {self.main_class}")
+
+        # Get classes and statements
+        clazzes = []
+        statements = []
+        for item in tree.children:
+            if item.data == "clazz":
+                clazzes.append(item)
+            else:
+                statements.append(item)
+
+        # Create new class
+        clazz_body = Tree("class_body", statements)
+        clazzes.append(Tree("clazz", [Tree("identifier", [Token("CNAME", self.main_class)]), clazz_body]))
+
+        # Add it to the tree
+        tree.children = clazzes
+        return tree
+
+@v_args(tree=True)
+class ConstructorCleanup(Transformer):
+    # Makes a class_method for class constructors
+    # Also guarantees every class has an explicit superclass node, use "Obj" if not present
+    # And every method has a formal argument list
+
+    def clazz(self, tree):
+        clazz_name = tree.children[0].children[0].value
+        logger.trace(f"Desugaring loose constructor statements into new method $constructor for {clazz_name}")
+
+        # Separate class methods from constructor statements
+        class_methods = []
+        constructor_statements = []
+        for item in tree.children[-1].children:
+            if item.data == "class_method":
+                if item.children[1].data != "formal_args":
+                    item.children.insert(1, Tree("formal_args", []))
+                class_methods.append(item)
+            else:
+                constructor_statements.append(item)
+
+        # Make the constructor method
+        constructor_args = tree.children[1]
+        if constructor_args.data != "formal_args":
+            constructor_args = Tree("formal_args", [])
+        else:
+            tree.children.pop(1)
+        constructor_method = Tree("class_method", [
+            Tree("identifier", [Token("CNAME", "$constructor")]),
+            constructor_args, 
+            Tree("identifier", [Token("CNAME", clazz_name)]), # Return type
+            Tree("statement_block", constructor_statements)
+        ])
+
+        # Add constructor
+        class_methods.insert(0, constructor_method)
+        tree.children[-1].children = class_methods
+
+        # Add superclass
+        if tree.children[1].data != "identifier":
+            # Need to explicitly add class, use Obj
+            tree.children.insert(1, Tree("identifier", [Token("CNAME", "Obj")]))
+        return tree
+
+@v_args(tree=True)
+class MethodReturnCleanup(Transformer):
+    # Adds a blank return statement at the end of every class method, if one is not present
+    # For the constructor, it will simply "return this"
+    # Also replaces blank returns with "return none"
+
+    def class_method(self, tree):
+        method_name = tree.children[0].children[0].value
+        method_statements = tree.children[-1].children
+
+        # TODO bug involving if statements with returns on every branch
+        if method_statements[-1].data != "return_statement":
+            logger.trace(f"Adding return statement to end of method {method_name}")
+            node = Tree("return_statement", [Tree("nothing_literal", [])])
+
+            # If constructor, return "this" instead of something else
+            if method_name == "$constructor":
+                node.children[0].data = "this_ptr"
+            
+            method_statements.append(node)
+        return tree
+
+    def return_statement(self, tree):
+        if len(tree.children) == 0:
+            logger.trace("Desugaring blank return to return none")
+            tree.children.append(Tree("nothing_literal", []))
+        return tree
+            
 
 def visualize(tree, filename):
     # Visualizes a tree as a PNG stored at filename
@@ -272,7 +384,7 @@ def visualize(tree, filename):
         logger.warn("Failed to visualize tree", e)
 
 
-def parse(prgm_text):
+def parse(prgm_text, main_class="Main"):
     # Lexes and parses the prgm
 
     logger = logging.getLogger("quack-parser")
@@ -286,10 +398,13 @@ def parse(prgm_text):
 
     # Cleanup the tree
     logger.debug("Attempting to transform the tree")
-    tree = IfStatementCleanup().transform(tree)
-    tree = MethodInvokeCleanup().transform(tree)
-    tree = StringLiteralCleanup().transform(tree)
-    tree = IdentifierCleanup().transform(tree)
+    tree = IfStatementCleanup().transform(tree) # Turn elif into nested ifs
+    tree = MethodInvokeCleanup().transform(tree) # Desugar binary ops +-*/ to method invocation
+    tree = StringLiteralCleanup().transform(tree) # Convert """ literals to "
+    tree = IdentifierCleanup().transform(tree) # Cleanup identifier mess grammar creates
+    tree = LooseStatementCleanup(main_class).transform(tree) # Move classless statements into their own class
+    tree = ConstructorCleanup().transform(tree) # Add tree node for constructor method
+    tree = MethodReturnCleanup().transform(tree) # Make every method end with return statement
     logger.trace(f"Transformed tree: {tree}")
     logger.debug("Successfully transformed the tree")
 
