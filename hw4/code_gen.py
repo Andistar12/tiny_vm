@@ -52,6 +52,9 @@ class QuackASMGen(Visitor_Recursive):
 
         if isinstance(ident, Tree):
             # Check for default cases
+            if ident.data == "this_ptr":
+                return self.curr_class
+
             if ident.data in tree_type_table:
                 return tree_type_table[ident.data]
 
@@ -143,7 +146,7 @@ class QuackASMGen(Visitor_Recursive):
                     class_code.append(f".local {','.join(local_vars)}")
 
                 # Generate method code
-                for line in self.asm[self.curr_class][self.curr_method]:
+                for line in self.asm[clazz][method]:
                     if line.startswith(".label"):
                         class_code.append(line[7:] + ":")
                     else:

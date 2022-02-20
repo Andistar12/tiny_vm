@@ -83,6 +83,9 @@ class TypeInferencer(Visitor_Recursive):
 
         if isinstance(ident, Tree):
             # Check for default cases
+            if ident.data == "this_ptr":
+                return self.curr_class
+
             if ident.data in tree_type_table:
                 return tree_type_table[ident.data]
 
@@ -109,7 +112,8 @@ class TypeInferencer(Visitor_Recursive):
                 # Look for return type of method
                 method = self.get_ident_name(ident.children[0])
                 if method not in self.class_map[clazz]["method_returns"]:
-                    compile_error(f"Attempted to get return type of unknown method {method} in ident of class {clazz}")
+                    return LATTICE_BOTTOM
+                    # compile_error(f"Attempted to get return type of unknown method {method} in class {clazz}")
                 return self.class_map[clazz]["method_returns"][method]
 
             elif ident.data == "obj_instantiation":

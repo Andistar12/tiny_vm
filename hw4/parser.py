@@ -79,12 +79,15 @@ quack_grammar = """
 ?r_expr_prod: r_expr_atom
     | r_expr_prod "*" r_expr_atom                   -> method_mul
     | r_expr_prod "/" r_expr_atom                   -> method_div
-    | "this" "." identifier                         -> identifier_field_rhand_this
-    | r_expr_prod "." identifier                    -> identifier_field_rhand
-    | r_expr_prod "." method_name "(" method_args? ")"   -> method_invocation
+
 
 // Redundant with l_expr. Prevents reduce-reduce conflict
-?r_expr_atom: identifier                            -> identifier_rhand
+?r_expr_atom: 
+
+    | r_expr_atom "." method_name "(" method_args? ")"   -> method_invocation
+    | "this" "." identifier                         -> identifier_field_rhand_this
+    | "this" "." method_name "(" method_args? ")"   -> method_invocation_self
+    | r_expr_atom "." identifier                    -> identifier_field_rhand
     | identifier "(" method_args ")"                -> obj_instantiation
     | ESCAPED_STRING                                -> string_literal
     | LONG_STRING                                   -> longstring_literal
@@ -95,11 +98,12 @@ quack_grammar = """
     | "this"                                        -> this_ptr
     | "-" c_expr                                    -> method_neg
     | "not" c_expr                                  -> cond_not
+    | identifier                            -> identifier_rhand
     | "(" c_expr ")"
 
 // Method name and arguments
 ?method_name: identifier                            -> identifier_method
-?method_args: r_expr ("," r_expr)*                  -> method_args
+?method_args: c_expr ("," c_expr)*                  -> method_args
 
 // Useful provided defaults
 %import common.INT
@@ -125,8 +129,14 @@ class MethodInvokeCleanup(Transformer):
     # Desugars method invocations
 
     def method_invocation(self, tree):
-        logger.trace("Transforming method_invocation by swapping calling object and method identifier")
+        logger.trace("Transforming method_invocation by swapping receiving object and method identifier")
         tree.children[0], tree.children[1] = tree.children[1], tree.children[0]
+        return tree
+
+    def method_invocation_self(self, tree):
+        logger.trace("Transforming method_invocation_self adding this pointer as receiving object")
+        tree.children.insert(1, Tree("this_ptr", []))
+        tree.data = "method_invocation"
         return tree
 
     def method_add(self, tree):

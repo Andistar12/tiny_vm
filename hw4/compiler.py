@@ -86,16 +86,20 @@ if __name__ == "__main__":
 
     # Generate the object code
     logger.debug("Attempting to generate object code")
-    obj = assemble.translate(asm)
+    obj = {}
+    for clazz in asm_output:
+        obj[clazz] = assemble.translate(asm_output[clazz])
     logger.info("Successfully generated object code")
 
     # Output the object code
-    output_file = f"{output_dir}/{main_class}.json"
-    logger.debug("Attempting to output object code to file " + output_file)
-    os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
-    with open(output_file, "w") as f:
-        f.write(obj.json())
-    logger.info("Successfully written object code to file " + output_file)
+    for clazz in asm_output:
+        output_file = f"{output_dir}/{clazz}.json"
+        logger.debug("Attempting to output object code to file " + output_file)
+        os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
+        with open(output_file, "w") as f:
+            f.write(obj.json())
+        logger.debug("Successfully written object code to file " + output_file)
+    logger.info("Successfully generated the object code")
 
     logger.info("Compilation success")
 
