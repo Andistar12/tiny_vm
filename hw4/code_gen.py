@@ -52,8 +52,8 @@ class QuackASMGen(Visitor_Recursive):
 
         if isinstance(ident, Tree):
             # Check for default cases
-            if ident.data == "this_ptr":
-                return self.curr_class
+            #if ident.data == "this_ptr":
+            #    return self.curr_class
 
             if ident.data in tree_type_table:
                 return tree_type_table[ident.data]
@@ -132,9 +132,11 @@ class QuackASMGen(Visitor_Recursive):
             for field in self.class_map[clazz]["field_list"]:
                 class_code.append(f".field {field}")
 
+
             # Add method
             for method in self.class_map[clazz]["method_arg_names"]:
                 logger.trace(f"Writing assembly for method {method} in class {clazz}")
+                class_code.append("")
                 class_code.append(f".method {method}")
 
                 # Add method args and class code
@@ -239,14 +241,11 @@ class QuackASMGen(Visitor_Recursive):
         clazz = self.infer_type(tree.children[1]) # Get object class
         ident = self.get_ident_name(tree.children[0]) # Get method name
         
-        if clazz not in self.class_map:
-            compile_error(f"Attempted to invoke method {ident} of unknown class {clazz}")
-        if ident not in self.class_map[clazz]["method_returns"]:
-            compile_error(f"Attempted to invoke unknown method {ident} of class {clazz}")
-
         self.add_asm(f"call {clazz}:{ident}")
         
         # Pop the nothings
+        if clazz == "$":
+            clazz = self.curr_class
         ret_type = self.class_map[clazz]["method_returns"][ident]
         if ret_type == "Nothing":
             self.add_asm("pop")
