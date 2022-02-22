@@ -73,7 +73,7 @@ if __name__ == "__main__":
     if output_dir == None:
         output_dir = "out"
 
-    # Output the assembly
+    # Output the assembly and object code
     for clazz in asm_output:
         output_file = f"{output_dir}/{clazz}.asm"
         logger.debug("Attempting to output assembly code to file " + output_file)
@@ -84,24 +84,17 @@ if __name__ == "__main__":
                 f.write("\n")
         logger.info("Successfully written assembly to file " + output_file)
 
-    # Generate the object code
-    logger.debug("Attempting to generate object code")
-    obj = {}
-    for clazz in asm_output:
+        # Generate the object code
         logger.debug(f"Attempting to generate object code for {clazz}")
-        obj[clazz] = assemble.translate(asm_output[clazz])
+        obj = assemble.translate(asm_output[clazz])
         logger.debug(f"Successfully generated object code for {clazz}")
-    logger.info("Successfully generated object code")
 
-    # Output the object code
-    for clazz in asm_output:
         output_file = f"{output_dir}/{clazz}.json"
         logger.debug("Attempting to output object code to file " + output_file)
         os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
         with open(output_file, "w") as f:
             f.write(obj.json())
-        logger.debug("Successfully written object code to file " + output_file)
-    logger.info("Successfully generated the object code")
+        logger.info("Successfully written object code to file " + output_file)
 
     logger.info("Compilation success")
 
