@@ -14,7 +14,7 @@ OBJ_LIB="OBJ/"
 OUT="out"
 
 # The homework folder to grade
-COMPILER_FOLDER=hw3
+COMPILER_FOLDER=hw4
 
 # The compiler to invoke
 COMPILER="python3 $COMPILER_FOLDER/compiler.py -o $OUT"

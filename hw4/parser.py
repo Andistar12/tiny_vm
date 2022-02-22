@@ -364,7 +364,7 @@ class MethodReturnCleanup(Transformer):
         method_statements = tree.children[-1].children
 
         # TODO bug involving if statements with returns on every branch
-        if method_statements[-1].data != "return_statement":
+        if len(method_statements) == 0 or method_statements[-1].data != "return_statement":
             logger.trace(f"Adding return statement to end of method {method_name}")
             node = Tree("return_statement", [Tree("nothing_literal", [])])
 

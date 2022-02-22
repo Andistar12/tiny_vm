@@ -16,7 +16,7 @@ class LCG(mult: Int, shift: Int, modulus: Int, seed: Int) {
     def mod(x: Int, y: Int) : Int {
         // Returns x mod y
 
-        while x > y {
+        while x >= y {
             x = x - y;
         }
 

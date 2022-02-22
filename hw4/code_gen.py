@@ -222,6 +222,13 @@ class QuackASMGen(Visitor_Recursive):
             ident = self.get_ident_name(tree.children[0])
             self.add_asm("store " + ident)
 
+    def obj_instantiation(self, tree):
+        logger.debug(f"Processed obj_instantiation: {tree}")
+
+        clazz = self.get_ident_name(tree.children[0])
+        self.add_asm(f"new {clazz}")
+        self.add_asm(f"call {clazz}:$constructor")
+
     def string_literal(self, tree):
         logger.debug(f"Processed string literal: {tree}")
         self.add_asm("const " + tree.children[0].value)
@@ -413,6 +420,8 @@ class QuackASMGen(Visitor_Recursive):
         # First set current method
         self.curr_method = self.get_ident_name(tree.children[0])
         self.asm[self.curr_class][self.curr_method] = []
+
+        self.add_asm("enter")
 
         # Now visit body (fourth child)
         self.visit(tree.children[3])
