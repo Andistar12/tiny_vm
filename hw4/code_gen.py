@@ -132,6 +132,10 @@ class QuackASMGen(Visitor_Recursive):
             for field in self.class_map[clazz]["field_list"]:
                 class_code.append(f".field {field}")
 
+            # Forward declare methods
+            for method in self.class_map[clazz]["method_arg_names"]:
+                if method != "$constructor":
+                    class_code.append(f".method {method} forward")
 
             # Add method
             for method in self.class_map[clazz]["method_arg_names"]:
@@ -200,6 +204,9 @@ class QuackASMGen(Visitor_Recursive):
         clazz = self.infer_type(tree.children[0])
         self.add_asm(f"load_field {clazz}:ident")
 
+    def statement(self, tree):
+        logger.trace(f"Processed statement: {tree}")
+
     def identifier_field_lhand(self, tree):
         logger.debug(f"Processed identifier_field_lhand: {tree}")
         ident = self.get_ident_name(tree.children[1])
@@ -207,14 +214,13 @@ class QuackASMGen(Visitor_Recursive):
         clazz = self.infer_type(tree.children[0])
         self.add_asm(f"store_field {clazz}:ident")
 
-    def statement(self, tree):
-        logger.trace(f"Processed statement: {tree}")
-
     def assignment(self, tree):
         logger.debug(f"Processed assignment: {tree}")
+
         # Identifier for local variable (without field)
-        ident = self.get_ident_name(tree.children[0])
-        self.add_asm("store " + ident)
+        if "field" not in tree.children[0].data:
+            ident = self.get_ident_name(tree.children[0])
+            self.add_asm("store " + ident)
 
     def string_literal(self, tree):
         logger.debug(f"Processed string literal: {tree}")
@@ -236,6 +242,10 @@ class QuackASMGen(Visitor_Recursive):
         logger.debug(f"Processed nothing literal: {tree}")
         self.add_asm("const none")
 
+    def this_ptr(self, tree):
+        logger.debug(f"Processed this pointer: {tree}")
+        self.add_asm("load $")
+
     def method_invocation(self, tree):
         logger.debug(f"Processed method invocation: {tree}")
         clazz = self.infer_type(tree.children[1]) # Get object class
@@ -252,6 +262,11 @@ class QuackASMGen(Visitor_Recursive):
 
     def method_args(self, tree):
         logger.trace(f"Processed method args: {tree}")
+
+    def return_statement(self, tree):
+        logger.trace(f"Processed return_statement: {tree}")
+        args = self.class_map[self.curr_class]["method_args"][self.curr_method]
+        self.add_asm(f"return {len(args)}")
 
     def cond_and(self, tree):
         # Needs a label to use skip over. See if there's an active label

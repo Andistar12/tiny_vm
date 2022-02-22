@@ -88,7 +88,9 @@ if __name__ == "__main__":
     logger.debug("Attempting to generate object code")
     obj = {}
     for clazz in asm_output:
+        logger.debug(f"Attempting to generate object code for {clazz}")
         obj[clazz] = assemble.translate(asm_output[clazz])
+        logger.debug(f"Successfully generated object code for {clazz}")
     logger.info("Successfully generated object code")
 
     # Output the object code
