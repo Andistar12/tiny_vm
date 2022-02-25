@@ -62,10 +62,10 @@ class QuackASMGen(Visitor_Recursive):
             elif ident.data.startswith("identifier_field"):
                 if "this" in ident.data:
                     clazz = self.curr_class
-                    name = ident.children[0].value
+                    name = self.get_ident_name(ident.children[0])
                 else:
                     clazz = self.infer_type(ident.children[0])
-                    name = ident.children[1].value
+                    name = self.get_ident_name(ident.children[1])
                 if clazz not in self.class_map:
                     compile_error(f"Attempted to get field from unknown class {clazz}")
                 return self.class_map[clazz]["field_list"][name]
@@ -202,7 +202,7 @@ class QuackASMGen(Visitor_Recursive):
         ident = self.get_ident_name(tree.children[1])
         # Calling object shjould already be on the stack
         clazz = self.infer_type(tree.children[0])
-        self.add_asm(f"load_field {clazz}:ident")
+        self.add_asm(f"load_field {clazz}:{ident}")
 
     def statement(self, tree):
         logger.trace(f"Processed statement: {tree}")
@@ -212,7 +212,7 @@ class QuackASMGen(Visitor_Recursive):
         ident = self.get_ident_name(tree.children[1])
         # Calling object shjould already be on the stack
         clazz = self.infer_type(tree.children[0])
-        self.add_asm(f"store_field {clazz}:ident")
+        self.add_asm(f"store_field {clazz}:{ident}")
 
     def assignment(self, tree):
         logger.debug(f"Processed assignment: {tree}")
@@ -426,6 +426,41 @@ class QuackASMGen(Visitor_Recursive):
         # Now visit body (fourth child)
         self.visit(tree.children[3])
 
+    def typecase_statement(self, tree):
+        logger.trace(f"Processed method: {tree}")
+
+        # Since we only compute the expression once, store to dummy variable
+        self.visit(tree.children[0])
+        self.add_asm("store __typecase_var")
+
+        # For each branch, generate labels to jump to them and then jump out
+        end = self.gen_label("typecaseend")
+        for child in tree.children[1:]:
+            type_label = self.gen_label("typecase")
+
+            # What I should do is desugar the tree to change the type specific
+            # variable name to be the same on all branches since it will always
+            # be the same object. However, I am lazy so I will just generate a
+            # ton of code instead to copy into the variable
+            ident = self.get_ident_name(child.children[0])
+            clazz = self.get_ident_name(child.children[1])
+            self.add_asm("load __typecase_var")
+            self.add_asm(f"store {ident}")
+            self.add_asm("load __typecase_var")
+            self.add_asm(f"is_instance {clazz}")
+            self.add_asm(f"jump_ifnot {type_label}")
+
+            # Generate the branch code
+            self.visit(child)
+            self.add_asm(f"jump {type_label}")
+
+            # Generate the skip
+            self.add_asm(f".label {type_label}")
+        
+        # Finally, generate the last label
+        self.add_asm(f".label {end}")
+
+
     def visit(self, tree):
 
         if not isinstance(tree, Tree):
@@ -460,6 +495,10 @@ class QuackASMGen(Visitor_Recursive):
 
         elif tree.data == "class_method":
             # Let method handle itself
+            self._call_userfunc(tree)
+
+        elif tree.data == "typecase_statement":
+            # Let typecase handle itself
             self._call_userfunc(tree)
 
         else:

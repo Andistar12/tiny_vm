@@ -44,6 +44,10 @@ quack_grammar = """
     
     | "while" c_expr statement_block                -> while_structure
     | "return" (c_expr)? ";"                        -> return_statement
+    | "typecase" c_expr "{" (type_alt)* "}"         -> typecase_statement
+
+// Type alternative: for typecase
+?type_alt: identifier ":" identifier statement_block -> type_alt
 
 // Statement block: curly brace of statements
 ?statement_block: "{" statement* "}"                -> statement_block
@@ -51,18 +55,18 @@ quack_grammar = """
 // Definition of a left-hand expression: identifier, or object.identifier
 ?l_expr: identifier                                 -> identifier_lhand
     | "this" "." identifier                         -> identifier_field_lhand_this
-    | r_expr "." identifier                         -> identifier_field_lhand
+    | r_expr_access "." identifier                  -> identifier_field_lhand
 
 // Definition of an identifier: non digit character followed by alphanumeric
 ?identifier: CNAME                                  -> identifier
 
 
-// Define special type to handle short circuiting, at highest precedence
+// Define special type to handle short circuiting, at lowest precedence
 ?c_expr: cc_expr
     | c_expr "and" cc_expr                           -> cond_and
     | c_expr "or" cc_expr                            -> cond_or
 
-// Define comparison operations at very high precedence
+// Define comparison operations at very low priority
 ?cc_expr: r_expr
     | cc_expr "==" r_expr                            -> method_eq
     | cc_expr "<=" r_expr                            -> method_leq
@@ -76,18 +80,26 @@ quack_grammar = """
     | r_expr "+" r_expr_prod                        -> method_add
     | r_expr "-" r_expr_prod                        -> method_sub
 
-?r_expr_prod: r_expr_atom
-    | r_expr_prod "*" r_expr_atom                   -> method_mul
-    | r_expr_prod "/" r_expr_atom                   -> method_div
+// Mult/div is higher precedence than add and sub
+?r_expr_prod: r_expr_access
+    | r_expr_prod "*" r_expr_access                 -> method_mul
+    | r_expr_prod "/" r_expr_access                 -> method_div
 
-
-// Redundant with l_expr. Prevents reduce-reduce conflict
-?r_expr_atom: 
-
-    | r_expr_atom "." method_name "(" method_args? ")"   -> method_invocation
+// Method/field is next precedence
+// Redundant with l_expr, but simplifies code generation by labeling tree differently
+?r_expr_access: r_expr_unary
+    | r_expr_access "." method_name "(" method_args? ")"   -> method_invocation
     | "this" "." identifier                         -> identifier_field_rhand_this
     | "this" "." method_name "(" method_args? ")"   -> method_invocation_self
-    | r_expr_atom "." identifier                    -> identifier_field_rhand
+    | r_expr_access "." identifier                    -> identifier_field_rhand
+
+// Unary operations
+?r_expr_unary: r_expr_atom
+    | "-" c_expr                                    -> method_neg
+    | "not" c_expr                                  -> cond_not
+
+// Smallest possible unit (ignoring recursion)
+?r_expr_atom: "(" c_expr ")"
     | identifier "(" method_args ")"                -> obj_instantiation
     | ESCAPED_STRING                                -> string_literal
     | LONG_STRING                                   -> longstring_literal
@@ -96,10 +108,7 @@ quack_grammar = """
     | "false"                                       -> boolean_literal_false
     | "none"                                        -> nothing_literal
     | "this"                                        -> this_ptr
-    | "-" c_expr                                    -> method_neg
-    | "not" c_expr                                  -> cond_not
-    | identifier                            -> identifier_rhand
-    | "(" c_expr ")"
+    | identifier                                    -> identifier_rhand
 
 // Method name and arguments
 ?method_name: identifier                            -> identifier_method

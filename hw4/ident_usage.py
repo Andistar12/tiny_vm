@@ -73,7 +73,6 @@ class IdentUsageCheck(Visitor_Recursive):
         if ident not in self.idents:
             compile_error(f"Identifier {ident} has not been declared/assigned yet")
 
-
     def visit(self, tree):
 
         if not isinstance(tree, Tree):
@@ -158,6 +157,20 @@ class IdentUsageCheck(Visitor_Recursive):
             # Now visit child then reset idents
             self.visit(tree.children[1])
             self.idents = ident
+            self.class_idents = class_idents
+
+        # For typecase statement, just throw away any changes
+        elif tree.data == "type_alt":
+            idents = self.idents.copy()
+            class_idents = self.class_idents.copy()
+
+            # First add type ident name
+            ident = self.get_ident_name(tree.children[0])
+            self.idents.add(ident)
+
+            # Now visit child then reset idents
+            self.visit(tree.children[2])
+            self.idents = idents
             self.class_idents = class_idents
 
         else:

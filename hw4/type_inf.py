@@ -93,10 +93,10 @@ class TypeInferencer(Visitor_Recursive):
             elif ident.data.startswith("identifier_field"):
                 if "this" in ident.data:
                     clazz = self.curr_class
-                    name = ident.children[0].value
+                    name = self.get_ident_name(ident.children[0])
                 else:
                     clazz = self.infer_type(ident.children[0])
-                    name = ident.children[1].value
+                    name = self.get_ident_name(ident.children[1])
                 if clazz not in self.class_map:
                     compile_error(f"Attempted to get field from unknown class {clazz}")
                 return self.class_map[clazz]["field_list"].get(name, LATTICE_BOTTOM)
@@ -158,7 +158,9 @@ class TypeInferencer(Visitor_Recursive):
         if new_type == LATTICE_BOTTOM:
             compile_error(f"Attempted to set data type of field to LATTICE_BOTTOM")
 
-        if ident.data.startswith("identifier_field"):
+        if isinstance(ident, str):
+            self.class_map[self.curr_class]["method_locals"][self.curr_method][ident] = new_type
+        elif ident.data.startswith("identifier_field"):
             if "this" in ident.data:
                 clazz = self.curr_class
                 name = self.get_ident_name(ident.children[0])
@@ -306,6 +308,19 @@ class TypeInferencer(Visitor_Recursive):
         logger.trace(f"Local scope for class {self.curr_class} method {method_name} is now {self.class_map[self.curr_class]['method_locals'][self.curr_method]}")
         return tree
 
+    def type_alt(self, tree): 
+        # Add to scope then recurse
+        ident = self.get_ident_name(tree.children[0])
+        clazz = self.get_ident_name(tree.children[1])
+        logger.trace(f"Adding ident {ident} of class {clazz} to method locals")
+        self.set_ident_type(ident, clazz)
+        self.visit(tree.children[2])
+
+        # Also add dummy __typecase_var variable. Type doesn't matter
+        self.set_ident_type("__typecase_var", "Obj")
+
+        return tree
+
     def visit(self, tree):
         if tree.data == "clazz":
             # Pre-order traversal
@@ -328,6 +343,10 @@ class TypeInferencer(Visitor_Recursive):
                 inferred_type = self.class_map[self.curr_class]["method_locals"][self.curr_method][name]
                 if inferred_type != decl_clazz: 
                     compile_error(f"Formal argument {name} was declared {decl_clazz} but has inferred type {inferred_type}")
+
+        elif tree.data == "type_alt":
+            # Preorder traversal, let method handle it
+            self.type_alt(tree)
 
         else:
             return super().visit(tree)
