@@ -1,0 +1,22 @@
+// Testing type inferencing logic
+
+"This program should print out a bunch of 'correct' statements to test type inferencing\n\n".print();
+
+x = 5 + 3;
+y = x.string() + " [<-- should be 8]";
+z : Obj = y;
+"Below output should be a String:print invocation\n".print();
+y.print(); // Should be String:print
+"\n".print();
+"Below output should be a Obj:print invocation\n".print();
+z.print(); // Should be Obj:print
+"\n".print();
+
+if x == 8 {
+    w = "This is correct!\n";
+} else {
+    w = "This is incorrect!\n";
+}
+
+w.print();
+
