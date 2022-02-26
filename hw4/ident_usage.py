@@ -138,6 +138,12 @@ class IdentUsageCheck(Visitor_Recursive):
                 self.visit(tree.children[2])
             ident_branch2 = self.idents.copy()
             class_idents2 = self.class_idents.copy()
+
+            # For constructor, need to check declared fields are on both branches
+            if self.constructor:
+                diff = class_idents1.symmetric_difference(class_idents2)
+                if len(diff) > 0:
+                    compile_error(f"Different control flow branches declared different fields: {diff}")
             
             # Finally, take intersection
             logger.trace(f"branch1={ident_branch1} branch2={ident_branch2}")
@@ -157,6 +163,14 @@ class IdentUsageCheck(Visitor_Recursive):
             # Now visit child then reset idents
             self.visit(tree.children[1])
             self.idents = ident
+
+            # For constructor, need to check declared fields are on both branches
+            if self.constructor:
+                diff = class_idents.symmetric_difference(self.class_idents)
+                if len(diff) > 0:
+                    compile_error(f"Different control flow branches declared different fields: {diff}")
+
+            # Reset class idents
             self.class_idents = class_idents
 
         # For typecase statement, just throw away any changes

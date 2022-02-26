@@ -252,8 +252,9 @@ class ObjectCode:
         """Add a field to objects of this class;
         do this before methods.
         """
-        assert name not in self.field_list, "Field already exists"
-        self.field_list.append(name)
+        #assert name not in self.field_list, "Field already exists"
+        if name not in self.field_list:
+            self.field_list.append(name)
 
     def declare_method(self, method_name: str):
         """If we need calls to a method before we

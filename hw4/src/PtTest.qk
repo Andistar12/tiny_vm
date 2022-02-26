@@ -1,45 +1,90 @@
-/**
-* A simple sample Quack program
-*/
-
 class Pt(x: Int, y: Int) {
-	this.x = x;
-	this.y = y;
+    this.x = x;
+    this.y = y;
 
-	def string() : String {
-		return "(" + this.x.string() + ","
-				+ this.y.string() + ")";
-	}
+    def string() : String { 
+        return "(" + this.x.string() + ", " + this.y.string() + ")";
+    }
 
-	def plus(other: Pt) : Pt {
-		return Pt(this.x + other.x, this.y + other.y);
-	}
+    def getX() : Int {
+        return this.x;
+    }
 
-	def _x() : Int { return this.x; }
-	def _y() : Int { return this.y; }
+    def getY() : Int {
+        return this.y;
+    }
 }
 
-class Rect(ll: Pt, ur: Pt) extends Obj {
-	this.ll = ll;
-	this.ur = ur;
+class Shape() {
+    this.area = 0;
 
-	def translate(delta: Pt) : Rect { return Rect(this.ll+delta.x, this.ur+delta.y); }
+    def string() : String {
+        return "An arbitrary 2D shape";
+    }
 
-	def string() : String {
-		lr = Pt( this.ur._y(), this.ll._x() ); // lower right
-		ul = Pt( this.ll._x(), this.ur._y() ); // upper left
-		return "(" + this.ll.string() + ", "
-				+ ul.string() + ","
-				+ this.ur.string() + ","
-				+ lr.string() + ")";
-	}
+    def contains(pt: Pt) : Boolean {
+        return false; 
+    }
+
+    def area() : Int {
+        return this.area;
+    }
 }
 
-class Square(ll: Pt, side: Int) extends Rect {
-	this.ll = ll;
-	this.ur = Pt(this.ll._x() + side, this.ll._y() + side);
+class Circle(center: Pt, r: Int) extends Shape {
+    this.center = center;
+    this.radius = r;
+    this.area = r * r;
+
+    def string() : String {
+        return "A radius " + this.radius.string() + " circle centered at " + this.center.string();
+    }
+
+    def contains(pt: Pt) : Boolean {
+        dx = pt.getX() - this.center.getX();
+        dy = pt.getY() - this.center.getY();
+        return dx * dx + dy * dy < this.radius * this.radius;
+    }
 }
 
-a_square = Square( Pt(3,3), 5 );
-a_square = a_square.translate( Pt(2,2) );
-a_square.print();
+class Rectangle(ul: Pt, lr: Pt) extends Shape {
+    this.ul = ul;
+    this.lr = lr;
+
+    dx = ul.getX() - lr.getX();
+    dy = ul.getY() - lr.getY();
+    this.area = dx * dy;
+
+    def string() : String {
+        return "A rectangle with upperleft " + this.ul.string() + " and lowerright " + this.lr.string();
+    }
+
+    def contains(pt: Pt) : Boolean {
+        return pt.getX() >= this.ul.getX() and pt.getX() <= this.lr.getX() and
+            pt.getY() <= this.ul.getY() and pt.getY() >= this.lr.getY();
+    }
+}
+
+class GridCenteredSquare(center: Pt, radius: Pt) extends Rectangle {
+    this.ul = Pt(center.getX() - radius, center.getY() - radius);
+    this.lr = Pt(center.getX() + radius, center.getY() + radius);
+    this.area = 4 * radius * radius;
+}
+
+pt = Pt(1, 1);
+circ = Circle(Pt(0, 0), 1);
+rect = Rectangle(Pt(-1, 1), Pt(1, -1));
+sqr  = GridCenteredSquare(Pt(0, 0), 1);
+
+pt.print();
+"\n".print();
+circ.print();
+"\n".print();
+sqr.print();
+"\n".print();
+sqr.print();
+"\n".print();
+
+circ.contains(pt).print();
+rect.contains(pt).print();
+sqr.contains(pt).print();

@@ -4,6 +4,7 @@ Handles parsing the language and perform tree transformation cleanup
 
 from lark import Lark, v_args, Tree, Token, tree as lark_tree
 from lark.visitors import Transformer
+from lark.exceptions import UnexpectedInput
 import sys
 import logging
 import log_helper
@@ -32,7 +33,7 @@ quack_grammar = """
 // Class body: statements then methods
 ?class_body: "{" statement* class_method* "}"       -> class_body
 
-?class_method: "def" identifier "(" formal_args? ")" (":" identifier)? statement_block          -> class_method
+?class_method: "def" identifier "(" formal_args? ")" ":" identifier statement_block          -> class_method
 
 // Definition of a statement: an expression or variable assignment or control structure
 ?statement: c_expr ";"                              -> statement
@@ -100,7 +101,7 @@ quack_grammar = """
 
 // Smallest possible unit (ignoring recursion)
 ?r_expr_atom: "(" c_expr ")"
-    | identifier "(" method_args ")"                -> obj_instantiation
+    | identifier "(" method_args? ")"                -> obj_instantiation
     | ESCAPED_STRING                                -> string_literal
     | LONG_STRING                                   -> longstring_literal
     | INT                                           -> int_literal
@@ -412,7 +413,12 @@ def parse(prgm_text, main_class="Main"):
     logger.debug("Attempting to parse the grammer")
     quack_lexer = Lark(quack_grammar, parser="lalr")
     logger.debug("Atetmpting to generate the tree")
-    tree = quack_lexer.parse(prgm_text)
+    try:
+        tree = quack_lexer.parse(prgm_text)
+    except UnexpectedInput as e:
+        msg = f"\n{str(e)}\nContext:\n\n{e.get_context(prgm_text)}"
+        logger.critical(msg)
+        compile_error("Program failed lexing/parsing state")
     logger.debug("Successfully generated the AST")
 
     # Cleanup the tree

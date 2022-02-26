@@ -1,0 +1,44 @@
+// Playing with linked list structure and testing chained method calls
+
+class IntNode(val: Int) {
+    this.data = val;
+    this.next = this;
+    this.sentinel = true;
+
+    def set_next(next: IntNode) : IntNode {
+        this.next = next;
+        this.sentinel = false;
+        return this;
+    }
+
+    def next() : IntNode {
+        return this.next;
+    }
+
+    def data() : Int {
+        return this.data;
+    }
+
+    def sentinel() : Boolean {
+        return this.sentinel;
+    }
+
+    def print() : Nothing {
+        this.data.print();
+    }
+}
+
+mylist = IntNode(-1);
+mylist = IntNode(5).set_next(mylist);
+mylist = IntNode(4).set_next(mylist);
+mylist = IntNode(3).set_next(mylist);
+mylist = IntNode(2).set_next(mylist);
+
+"Expecting 5:\n".print();
+mylist.next().next.next.print();
+
+"\n\nExpecting 6:\n".print();
+mylist.next.next().next.data = 6;
+mylist.next().next().next().print();
+"\n".print();
+

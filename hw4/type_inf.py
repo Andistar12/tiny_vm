@@ -61,10 +61,14 @@ class TypeInferencer(Visitor_Recursive):
         c = clazz1
         while c != "$":
             clazz1_lineage.insert(0, c)
+            if c not in self.class_map:
+                compile_error(f"Cannot find class {c}")
             c = self.class_map[c]["superclass"]
         c = clazz2
         while c != "$":
             clazz2_lineage.insert(0, c)
+            if c not in self.class_map:
+                compile_error(f"Cannot find class {c}")
             c = self.class_map[c]["superclass"]
 
         if clazz1_lineage[0] != clazz2_lineage[0]:

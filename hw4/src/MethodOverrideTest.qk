@@ -1,0 +1,51 @@
+// Testing method overriding
+
+class IntNode(val: Int) {
+    this.data = val;
+    this.next = this;
+    this.sentinel = true;
+
+    def set_next(next: IntNode) : IntNode {
+        this.next = next;
+        this.sentinel = false;
+        return this;
+    }
+
+    def next() : IntNode {
+        return this.next;
+    }
+
+    def data() : Int {
+        return this.data;
+    }
+
+    def sentinel() : Boolean {
+        return this.sentinel;
+    }
+
+    def print() : Nothing {
+        this.data.print();
+    }
+
+    def equals(other: Obj) : Boolean {
+        typecase other {
+            node : IntNode { return node.data == this.data; }
+            oth : Obj { return false; }
+        }
+    }
+}
+
+node1 = IntNode(1);
+node2 = IntNode(2);
+node1_2 = IntNode(1);
+
+"Expecting false: ".print();
+(node1 == node2).print();
+
+"\n\nExpecting true: ".print();
+(node1 == node1_2).print();
+
+"\n\nExpecting true: ".print();
+(node1.equals(node1_2)).print();
+"\n".print();
+

@@ -138,14 +138,16 @@ class QuackASMGen(Visitor_Recursive):
                     class_code.append(f".method {method} forward")
 
             # Add method
-            for method in self.class_map[clazz]["method_arg_names"]:
+            for method in self.asm[clazz]: # Only generate those which we have code for
                 logger.trace(f"Writing assembly for method {method} in class {clazz}")
                 class_code.append("")
                 class_code.append(f".method {method}")
 
                 # Add method args and class code
                 method_args = self.class_map[clazz]["method_arg_names"][method]
-                local_vars = [x for x in self.class_map[clazz]["method_locals"][method] if x not in method_args]
+                local_vars = []
+                if method in self.class_map[clazz]["method_locals"]:
+                    local_vars = [x for x in self.class_map[clazz]["method_locals"][method] if x not in method_args]
                 if len(method_args) > 0:
                     class_code.append(f".args {','.join(method_args)}")
                 if len(local_vars) > 0:

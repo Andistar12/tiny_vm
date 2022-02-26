@@ -1,0 +1,9 @@
+// Testing typecase and type inference with it
+
+"Expecting true:\n".print();
+typecase true {
+    b : Boolean { b.print(); }
+    o : Obj { "We shouldn't be here!".print(); }
+}
+
+"\n".print();
