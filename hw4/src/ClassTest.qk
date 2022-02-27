@@ -1,0 +1,9 @@
+class Test() {
+    this.field1 = 0;
+}
+
+class Test() {
+    this.field2 = this.field1;
+}
+
+Test();
