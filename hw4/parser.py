@@ -139,7 +139,11 @@ class MethodInvokeCleanup(Transformer):
     # Desugars method invocations
 
     def method_invocation(self, tree):
-        logger.trace("Transforming method_invocation by swapping receiving object and method identifier")
+        logger.trace("Transforming method_invocation by swapping receiving object and method identifier, and collapsing method_args")
+        if len(tree.children) > 2:
+            # Collapse method_args
+            method_args = tree.children[2].children
+            tree.children = tree.children[0:2] + method_args
         tree.children[0], tree.children[1] = tree.children[1], tree.children[0]
         return tree
 

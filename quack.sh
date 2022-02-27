@@ -17,7 +17,7 @@ OUT="out"
 COMPILER_FOLDER=hw4
 
 # The compiler to invoke
-COMPILER="python3 $COMPILER_FOLDER/compiler.py -o $OUT"
+COMPILER="python3 $COMPILER_FOLDER/compiler.py -o $OUT -j $OBJ_LIB"
 
 # ------
 
@@ -43,7 +43,10 @@ for f in $SRC_FILES; do
     bn="${f%.*}" # File basename
 
     # Compile the program
-    $COMPILER $file_path
+    if ! $COMPILER $file_path; then
+        echo
+        continue
+    fi
 
     # Copy JSON generated files into OBJ
     json_files=$(ls -Sr $OUT | grep json)

@@ -1,0 +1,19 @@
+{
+  "class_name": "Int",
+  "super":    "Obj",
+  "methods": [ "$constructor",
+               "string",
+               "print",
+                "equals",
+                "less",
+                "more",
+                "atleast",
+                "atmost",
+                "plus",
+                "minus",
+                "times",
+                "divide",
+                "negate"
+  ],
+  "fields": []
+}

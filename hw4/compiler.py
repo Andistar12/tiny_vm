@@ -14,6 +14,7 @@ if __name__ == "__main__":
     cliparser.add_argument("--log-level", "-D", metavar="log-level", default="INFO", help="Specifies the log level. Can be INFO, DEBUG, or TRACE. Default INFO")
     cliparser.add_argument("--main-class", "-m", metavar="clazz", default=None, help="Specifies the main class name. Default inferred from source filename")
     cliparser.add_argument("--output-dir", "-o", metavar="file", default=None, help="Specifies the output file directory. Default out/")
+    cliparser.add_argument("--obj-dir", "-j", metavar="file", default=None, help="Specifies the output file directory for OBJ files. Default OBJ/")
     cliparser.add_argument("--png", "-p", metavar="filename", default=None, help="If set, visualizes the parsed tree as a PNG stored at given filename")
     cliparser.add_argument("source", metavar="<source>", help="The source program file")
     args = cliparser.parse_args()
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     import assemble
     import ident_usage
     import type_inf
+    import manual_checks
     
     # Read entire program into memory
     prgm_file = args.source
@@ -62,6 +64,8 @@ if __name__ == "__main__":
     ident_usage.check(tree) # Check tree declares identifiers before using them
     logger.debug("Attempting to perform type inferencing on declarations")
     inferred_types = type_inf.infer(tree) # Perform type inferencing
+    logger.debug("Attempting to perform final tree and class hierarchy checks")
+    manual_checks.check(tree, inferred_types)
     logger.info("Successfully performed static semantic checks on tree")
 
     # Generate the assembly
@@ -72,6 +76,10 @@ if __name__ == "__main__":
     output_dir = args.output_dir
     if output_dir == None:
         output_dir = "out"
+
+    obj_dir = args.obj_dir
+    if obj_dir == None:
+        obj_dir = "OBJ"
 
     # Output the assembly and object code
     for clazz in asm_output:
@@ -89,11 +97,13 @@ if __name__ == "__main__":
         obj = assemble.translate(asm_output[clazz])
         logger.debug(f"Successfully generated object code for {clazz}")
 
-        output_file = f"{output_dir}/{clazz}.json"
+        output_file = f"{obj_dir}/{clazz}.json"
         logger.debug("Attempting to output object code to file " + output_file)
         os.makedirs(os.path.dirname(output_file), exist_ok=True) # Make subdirectories
         with open(output_file, "w") as f:
             f.write(obj.json())
+
+        os.sync() # Fixes race condition bugs with assembler loading
         logger.info("Successfully written object code to file " + output_file)
 
     logger.info("Compilation success")

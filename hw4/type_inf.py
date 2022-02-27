@@ -287,14 +287,56 @@ class TypeInferencer(Visitor_Recursive):
         return tree
 
     def class_method(self, tree):
-        # Add return type
         method_name = self.get_ident_name(tree.children[0])
         method_return = self.get_ident_name(tree.children[2])
         self.curr_method = method_name
+
+        # See if we are overriding
+        override = None
+        superclass = self.class_map[self.curr_class]["superclass"]
+        while superclass != "$":
+            if superclass not in self.class_map:
+                compile_error(f"Cannot find class {superclass}")
+            if method_name in self.class_map[superclass]["method_args"]:
+                override = superclass
+                break
+            superclass = self.class_map[superclass]["superclass"]
+
+        if override is not None and method_name != "$constructor":
+            # We found an override. Perform contravariance and covariance check
+
+            # First check number of arguments match
+            super_args = len(self.class_map[override]["method_args"][method_name])
+            decl_args = len(tree.children[1].children) // 2 # Ignore ident names
+
+            if super_args != decl_args:
+                logger.trace(self.class_map)
+                compile_error(f"Method {method_name} in {self.curr_class} has mismatched num args of overriden from {superclass}, expected {super_args} got {decl_args}")
+
+            # Check argument covariance
+            for i in range(0, len(tree.children[1].children), 2):
+                super_type = self.class_map[override]["method_args"][method_name][i // 2]
+                decl_clazz = self.get_ident_name(tree.children[1].children[i+1])
+
+                if self.lca(super_type, decl_clazz) != super_type:
+                    compile_error(f"Method {method_name} in {self.curr_class} has incompatible signature of overriden from {superclass}")
+
+            # Check return contravariance
+            super_type = self.class_map[override]["method_returns"][method_name]
+            superclass = method_return
+            while superclass != "$" and superclass != super_type:
+                if superclass not in self.class_map:
+                    compile_error(f"Cannot find class {superclass}")
+                superclass = self.class_map[superclass]["superclass"]
+            if superclass != super_type:
+                compile_error(f"Method {method_name} in {self.curr_class} has incompatible signature of overriden from {superclass}")
+
+        # Add return type
         self.class_map[self.curr_class]["method_returns"][method_name] = method_return
 
         # Add formal arguments to local scope
         if self.curr_method not in self.class_map[self.curr_class]["method_locals"]:
+
             # First time seeing method, add to hierarchy
             local = {}
             args = []

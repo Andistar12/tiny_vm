@@ -25,7 +25,7 @@ class Mod(modulus: Int) extends Obj {
         return x;
     }
     
-    def printModulus() : Int {
+    def printModulus() : Nothing {
         this.modulus.print();
     }
 }
@@ -95,7 +95,7 @@ d = Division(p, q);
 
 "This program approximates the Golden Ratio to ".print();
 digits.print();
-":\n\n".print();
+" digits:\n\n".print();
 p.print();
 " / ".print();
 q.print();
