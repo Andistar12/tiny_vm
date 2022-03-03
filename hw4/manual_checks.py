@@ -142,8 +142,7 @@ class ManualChecks(Visitor_Recursive):
                 # Look for return type of method
                 method = self.get_ident_name(ident.children[0])
                 if method not in self.class_map[clazz]["method_returns"]:
-                    return LATTICE_BOTTOM
-                    # compile_error(f"Attempted to get return type of unknown method {method} in class {clazz}")
+                    compile_error(f"Attempted to get return type of unknown method {method} in class {clazz}")
                 return self.class_map[clazz]["method_returns"][method]
 
             elif ident.data == "obj_instantiation":
