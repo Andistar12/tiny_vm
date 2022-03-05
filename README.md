@@ -1,3 +1,12 @@
+# HW 4
+
+Weird bugs
+
+ - Typecase may have some bugs. I forgot to implement checking for declaration before assignment within a typecase structure, and also I don't check whether every branch of a typecase declares the same fields (if you use typecase in a constructor bad things may happen)
+ - Method overriding works, but hw4/src/PtTest.qk breaks tiny_vm and I don't know why. What's happening is a child method overrides a parent method, but a grandchild inherits the child method without overriding it. I know this is breaking it because if the grandchild overrides the child method then everything works as expected
+
+All my tests are in hw4/src/. You can run `./quack.sh` to run all the tests automatically.
+
 # HW 3
 
 I added a Bash script `quack.sh` which compiles and runs all available Quack programs at one time. Just run the script with no CLI arguments. You may need to change the parameters at the top of the script to set the correct tiny_vm binary location and etc.

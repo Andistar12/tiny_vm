@@ -101,7 +101,7 @@ quack_grammar = """
 
 // Smallest possible unit (ignoring recursion)
 ?r_expr_atom: "(" c_expr ")"
-    | identifier "(" method_args? ")"                -> obj_instantiation
+    | identifier "(" method_args? ")"               -> obj_instantiation
     | ESCAPED_STRING                                -> string_literal
     | LONG_STRING                                   -> longstring_literal
     | INT                                           -> int_literal

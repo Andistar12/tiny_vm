@@ -19,7 +19,7 @@ class Mod(modulus: Int) extends Obj {
         return x;
     }
     
-    def printModulus() : Int {
+    def printModulus() : None {
         this.modulus.print();
     }
 }

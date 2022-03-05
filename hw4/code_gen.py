@@ -454,7 +454,7 @@ class QuackASMGen(Visitor_Recursive):
 
             # Generate the branch code
             self.visit(child)
-            self.add_asm(f"jump {type_label}")
+            self.add_asm(f"jump {end}")
 
             # Generate the skip
             self.add_asm(f".label {type_label}")
