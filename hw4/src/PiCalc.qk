@@ -94,6 +94,9 @@ class MonteCarloPi(resolution: Int, radius: Int, mult: Int, shift: Int) {
 
         numerator = 4 * inside;
         numerator = numerator - 3 * i;
+        if numerator < 0 {
+            numerator = numerator * -1;
+        }
         return numerator;
     }
 
@@ -107,12 +110,14 @@ class MonteCarloPi(resolution: Int, radius: Int, mult: Int, shift: Int) {
 }
 
 // Parameters
-resolution = 4; //Iters is 10^this
-radius = 15000; // Circle radius
+resolution = 3; //Iters is 10^this
+radius = 150; // Circle radius
 mult = 23; // Rng multiplier
 shift = 37; // Shift
 
 // The computation
 mcp = MonteCarloPi(resolution, radius, mult, shift);
+
+"Calculating digits of pi...\n\n".print();
 pi = mcp.pi();
 pi.print();

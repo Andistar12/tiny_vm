@@ -203,7 +203,10 @@ class ManualChecks(Visitor_Recursive):
         logger.trace(f"Checking method invocation of {method} in {self.curr_method} of {self.curr_class}")
         logger.trace(f"{tree}")
         clazz = self.infer_type(tree.children[1])
-        given_args = [] if len(tree.children) <= 2 else tree.children[2:]
+        given_args = tree.children[2:]
+        if len(given_args) > 0 and given_args[0].data == "method_args":
+            # Look at children
+            given_args = given_args[0].children
         method_args = self.class_map[clazz]["method_args"][method]
 
         if len(given_args) != len(method_args):

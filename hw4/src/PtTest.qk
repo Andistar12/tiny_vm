@@ -69,6 +69,12 @@ class GridCenteredSquare(center: Pt, radius: Int) extends Rectangle {
     this.ul = Pt(center.getX() - radius, center.getY() - radius);
     this.lr = Pt(center.getX() + radius, center.getY() + radius);
     this.area = 4 * radius * radius;
+
+    /*
+    def contains(pt: Pt) : Boolean {
+        return false;
+    }
+    */
 }
 
 pt = Pt(1, 1);
