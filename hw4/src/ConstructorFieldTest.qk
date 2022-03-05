@@ -1,7 +1,0 @@
-// Testing typecase and type inference with it
-
-class Test() {
-
-}
-
-t = Test();

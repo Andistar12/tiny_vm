@@ -39,13 +39,12 @@ class Circle(center: Pt, r: Int) extends Shape {
     def string() : String {
         return "A radius " + this.radius.string() + " circle centered at " + this.center.string();
     }
-
-    /*
+    
     def contains(pt: Pt) : Boolean {
         dx = pt.getX() - this.center.getX();
         dy = pt.getY() - this.center.getY();
         return dx * dx + dy * dy < this.radius * this.radius;
-    }*/
+    }
 }
 
 class Rectangle(ul: Pt, lr: Pt) extends Shape {
@@ -66,7 +65,7 @@ class Rectangle(ul: Pt, lr: Pt) extends Shape {
     }
 }
 
-class GridCenteredSquare(center: Pt, radius: Pt) extends Rectangle {
+class GridCenteredSquare(center: Pt, radius: Int) extends Rectangle {
     this.ul = Pt(center.getX() - radius, center.getY() - radius);
     this.lr = Pt(center.getX() + radius, center.getY() + radius);
     this.area = 4 * radius * radius;
@@ -81,7 +80,7 @@ pt.print();
 "\n".print();
 circ.print();
 "\n".print();
-sqr.print();
+rect.print();
 "\n".print();
 sqr.print();
 "\n".print();

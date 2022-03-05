@@ -1,0 +1,42 @@
+class Pt(x: Int, y: Int) {
+    this.x = x;
+    this.y = y;
+
+    def string() : String { 
+        return "(" + this.x.string() + ", " + this.y.string() + ")";
+    }
+
+    def getX() : Int {
+        return this.x;
+    }
+
+    def getY() : Int {
+        return this.y;
+    }
+}
+
+class Pt3D(x: Int, y: Int, z: Int) extends Pt {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+
+    def string() : String {
+        return "(" + this.x.string() + ", " + this.y.string() + ", " + this.z.string() + ")";
+    }
+
+    def getZ() : Int {
+        return this.z;
+    }
+}
+
+pt = Pt(1, 2);
+pt.print();
+"\n".print();
+
+pt3d = Pt3D(3, 4, 5);
+pt3d.print();
+"\n".print();
+pt3d.getX().print();
+"\n".print();
+pt3d.getZ().print(); 
+"\n".print();
